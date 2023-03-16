@@ -1,0 +1,16 @@
+{% extends "base" %}
+{% block title %}PGP Key Import{% endblock title %}
+{% block content %}
+	<div class="container">
+		<h2>Import PGP Keys</h2>
+
+		{% if keys | length() > 0 %}
+			<p>The following keys have been imported:</p>
+			<ul>
+				{% for key in keys %}<li>{{ key }}</li>{% endfor %}
+			</ul>
+		{% else %}
+			<p>No new keys</p>
+		{% endif %}
+	</div>
+{% endblock content %}

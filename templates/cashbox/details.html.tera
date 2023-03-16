@@ -1,0 +1,43 @@
+{% extends "base" %}
+{% block title %}Cashbox Details{% endblock title %}
+{% block content %}
+	<div class="container">
+		<h2>Cashbox Account {{ month }} {{ year }}</h2>
+
+		<table id="info" class="table table-bordered table-striped table-hover table-nonfluid">
+			<tr><th scope="row">Debit</th><td>{{ debit | cent2euro }} €</td></tr>
+			<tr><th scope="row">Loss</th><td>{{ loss | cent2euro }} €</td></tr>
+			<tr><th scope="row">Donation</th><td>{{ donation | cent2euro }} €</td></tr>
+			<tr><th scope="row">Withdrawal</th><td>{{ withdrawal | cent2euro }} €</td></tr>
+		</table>
+
+		<h2>Loss</h2>
+		<table id="info" class="table table-bordered table-striped table-hover table-nonfluid">
+			<tr><th scope="col">Date & Time</th><th scope="col">Amount</th></tr>
+			{% for entry in loss_list %}<tr>
+				<td>{{ entry.timestamp | date(format="%Y-%m-%d %H:%M:%S", timezone="Europe/Berlin") }}</td>
+				<td>{{ entry.amount | cent2euro }} €</td>
+			</tr>{% endfor %}
+		</table>
+
+		<h2>Donation</h2>
+		<table id="info" class="table table-bordered table-striped table-hover table-nonfluid">
+			<tr><th scope="col">Date & Time</th><th scope="col">Amount</th></tr>
+			{% for entry in donation_list %}<tr>
+				<td>{{ entry.timestamp | date(format="%Y-%m-%d %H:%M:%S", timezone="Europe/Berlin") }}</td>
+				<td>{{ entry.amount | cent2euro }} €</td>
+			</tr>{% endfor %}
+		</table>
+
+		<h2>Withdrawals</h2>
+		<table id="info" class="table table-bordered table-striped table-hover table-nonfluid">
+			<tr><th scope="col">Date & Time</th><th scope="col">Name</th><th scope="col">Amount</th></tr>
+			{% for entry in withdrawal_list %}<tr>
+				<td>{{ entry.timestamp | date(format="%Y-%m-%d %H:%M:%S", timezone="Europe/Berlin") }}</td>
+				<td>{{ entry.username }}</td>
+				<td>{{ entry.amount | cent2euro }} €</td>
+			</tr>{% endfor %}
+		</table>
+
+	</div>
+{% endblock content %}

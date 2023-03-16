@@ -1,0 +1,28 @@
+{% extends "base" %}
+{% block title %}Users{% endblock title %}
+{% block content %}
+	{% if session %}
+	<div class="container">
+		<table id="usertable" class="table table-bordered table-striped table-hover">
+			<thead>
+				<tr>
+					<th scope="col">ID</th>
+					<th scope="col">Name</th>
+				</tr>
+			</thead>
+			<tbody class="table-group-divider">
+				{% for user in list %}<tr>
+					<td><a href="/users/{{user.0}}">{{user.0}}</a></td>
+					<td><a href="/users/{{user.0}}">{{user.1}}</a></td>
+				</tr>{% endfor %}
+			</tbody>
+		</table>
+	</div>
+
+	<script type="text/javascript">
+	$(document).ready( function () {
+	    $('#usertable').DataTable({"lengthMenu": [ [25, 50, 100, -1], [25, 50, 100, "All"] ] });
+	} );
+	</script>
+	{% endif %}
+{% endblock content %}

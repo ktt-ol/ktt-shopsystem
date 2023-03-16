@@ -1,0 +1,53 @@
+{% extends "base" %}
+{% block title %}Suppliers{% endblock title %}
+{% block content %}
+	<div class="container">
+		{% if session.auth_products %}
+		<h2>New Supplier</h2>
+		<div id="newsupplier">
+			<form action="/suppliers/new" method="post" class="form-inline">
+				<div class="input-group mb-3">
+					<input class="form-control" name="name" type="text" placeholder="Name" />
+					<input class="form-control" name="postal_code" type="text" placeholder="Postal Code" />
+					<input class="form-control" name="city" type="text" placeholder="City" />
+					<input class="form-control" name="street" type="text" placeholder="Street" />
+					<input class="form-control" name="phone" type="text" placeholder="Phone" />
+					<input class="form-control" name="website" type="text" placeholder="Website" />
+					<button type="submit" class="form-control btn btn-primary"><span class="bi-plus-lg" aria-hidden="true"></span></button>
+				</div>
+			</form>
+		</div>
+		{% endif %}
+
+		<table id="producttable" class="table table-bordered table-striped table-hover">
+			<thead>
+				<tr>
+					<th scope="col">ID</th>
+					<th scope="col">Name</th>
+					<th scope="col">Postal Code</th>
+					<th scope="col">City</th>
+					<th scope="col">Street</th>
+					<th scope="col">Phone</th>
+					<th scope="col">Website</th>
+				</tr>
+			</thead>
+			<tbody class="table-group-divider">
+				{% for supplier in list %}<tr>
+					<td>{{supplier.id}}</td>
+					<td>{{supplier.name}}</td>
+					<td>{{supplier.postal_code}}</td>
+					<td>{{supplier.city}}</td>
+					<td>{{supplier.street}}</td>
+					<td>{{supplier.phone}}</td>
+					<td>{{supplier.website}}</td>
+				</tr>{% endfor %}
+			</tbody>
+		</table>
+	</div>
+
+	<script type="text/javascript">
+	$(document).ready( function () {
+	    $('#producttable').DataTable({"lengthMenu": [ [25, 50, 100, -1], [25, 50, 100, "All"] ] });
+	} );
+	</script>
+{% endblock content %}

@@ -1,0 +1,139 @@
+{% extends "base" %}
+{% block title %}User Info{% endblock title %}
+{% block content %}
+	<div class="container">
+		<div id="infobox" class="d-none alert"></div>
+
+		<h2>Personal Data</h2>
+
+		<div class="row align-items-start">
+			<div class="col">
+				<table id="userinfo" class="table table-bordered table-striped table-hover table-nonfluid">
+					<tr><th scope="row">Links</th><td><a href="/users/{{ userinfo.id }}/invoice">Invoice</a>, <a href="/users/{{ userinfo.id }}/stats">Stats</a></td></tr>
+					<tr><th scope="row">ID</th><td>{{ userinfo.id }}</td></tr>
+					<tr>
+						<th scope="row">Barcode</th>
+						<td>
+							<canvas id="barcode"></canvas><br>
+							<a href="#" onclick="window.open(code39_url());">Download</a><br>
+							<a href="https://barcode.tec-it.com/barcode.ashx?translate-esc=off&data=USER%20{{userinfo.id}}&code=Code39FullASCII&multiplebarcodes=false&unit=Fit&dpi=96&imagetype=png&rotation=0&color=%23000000&bgcolor=%23ffffff&qunit=Mm&quiet=0" target="_blank">Get HighRes Version (external)</a>
+						</td>
+					</tr>
+					<tr><th scope="row">RFID</th><td><ul>{% for rfid in userinfo.rfid %}<li>{{rfid}}</li>{% endfor %}</ul></td></tr>
+					<tr><th scope="row">Firstname</th><td>{{ userinfo.firstname }}</td></tr>
+					<tr><th scope="row">Lastname</th><td>{{ userinfo.lastname }}</td></tr>
+					<tr><th scope="row">E-Mail</th><td>{{ userinfo.email }}</td></tr>
+					<tr><th scope="row">PGP Key ID</th><td>{{ userinfo.pgp }}</td></tr>
+					<tr><th scope="row">Gender</th><td>{{ userinfo.gender }}</td></tr>
+					<tr><th scope="row">Street</th><td>{{ userinfo.street }}</td></tr>
+					<tr><th scope="row">PLZ</th><td>{{ userinfo.postal_code }}</td></tr>
+					<tr><th scope="row">City</th><td>{{ userinfo.city }}</td></tr>
+				</table>
+			</div>
+			<div class="col">
+				<table id="settings" class="table table-bordered table-striped table-hover table-nonfluid">
+					<tr><th scope="col" colspan="2">Settings</th></tr>
+					<tr><th scope="row">Sound Theme</th>
+						<td>
+							<form method="POST" enctype="multipart/form-data" class="row" action="#">
+								<div class="col-sm-8">
+									<select id="soundtheme" class="form-control" name="soundTheme">
+										<option value="">~ random ~</option>
+										{% for theme in sound_themes %}<option{% if theme == userinfo.sound_theme %} selected=""{% endif %}>{{ theme }}</option>{% endfor %}
+									</select>
+								</div>
+								<div class="col-auto">
+								<input id="setsoundtheme" type="button" class="btn btn-primary" value="Update">
+								</div>
+							</form>
+						</td>
+					</tr>
+					<tr><th scope="row" rowspan="3">Password</th><td><form method="POST" enctype="multipart/form-data" action="#"><input id="password1" name="password1" placeholder="New Password" type="password" class="form-control"></td></tr>
+					<tr><td><input id="password2" name="password2" placeholder="New Password (again)" type="password" class="form-control"></td></tr>
+					<tr><td><input id="setpw" type="button" class="btn btn-primary" value="Change Password"></td></form></tr>
+					<tr><th scope="col" colspan="2">Status Info</th></tr>
+					<tr><th scope="row">Disabled</th><td>{{ userinfo.disabled }}</td></tr>
+					<tr><th scope="row">Hidden</th><td>{{ userinfo.hidden }}</td></tr>
+					<tr><th scope="col" colspan="2">Administrative Info</th></tr>
+					<tr><th scope="row">Superuser</th><td>{{ userauth.superuser }}</td></tr>
+
+					<tr><th scope="row">Auth Products</th><td>{{ togglebutton(clickable=session.auth_users, enabled=userauth.auth_products, buttonid="authproductsbutton") | safe }}</td></tr>
+					<tr><th scope="row">Auth Cashbox</th><td>{{ togglebutton(clickable=session.auth_users, enabled=userauth.auth_cashbox, buttonid="authcashboxbutton") | safe }}</td></tr>
+					<tr><th scope="row">Auth Users</th><td>{{ togglebutton(clickable=session.auth_users, enabled=userauth.auth_users, buttonid="authusersbutton") | safe }}</td></tr>
+				</table>
+			</div>
+		</div>
+	</div>
+
+	<script type="text/javascript">
+	code39_init();
+	code39_draw("USER {{userinfo.id}}", true);
+
+	var update_auth_button = function(data, buttonid, datafield) {
+		toggle_button_yes_no(buttonid, data[datafield]);
+	}
+
+	var infobox_setting = function(data, setting) {
+		box = $("#infobox");
+		if (data) {
+			box.html("Successfully changed " + setting);
+			box.removeClass("alert-danger");
+			box.addClass("alert-success");
+		} else {
+			box.html("Failed to change " + setting);
+			box.removeClass("alert-success");
+			box.addClass("alert-danger");
+		}
+		box.removeClass("d-none");
+		console.info(setting + ": " + data)
+	}
+
+	$('#setsoundtheme').on('click', function (e) {
+		var soundtheme = $("#soundtheme").val();
+
+		var req = $.postJSON(
+			"/users/set-sound-theme/{{ userinfo.id }}",
+			soundtheme,
+			function( data ) { infobox_setting(data, 'soundtheme'); }
+		);
+	});
+
+	$('#setpw').on('click', function (e) {
+		var pw1 = $("#password1").val();
+		var pw2 = $("#password2").val();
+
+		if (pw1 === pw2) {
+			var req = $.postJSON(
+				"/users/set-password/{{ userinfo.id }}",
+				pw1,
+				function( data ) { infobox_setting(data, 'password'); }
+			);
+		} else {
+			infobox_setting(false, 'password');
+		}
+	});
+
+
+	$('#authproductsbutton').on('click', function (e) {
+		var req = $.getJSON(
+			"/users/toggle-auth/{{ userinfo.id }}/products",
+			function( data ) { update_auth_button(data, '#authproductsbutton', 'auth_products'); }
+		);
+	});
+
+	$('#authcashboxbutton').on('click', function (e) {
+		var req = $.getJSON(
+			"/users/toggle-auth/{{ userinfo.id }}/cashbox",
+			function( data ) { update_auth_button(data, '#authcashboxbutton', 'auth_cashbox'); }
+		);
+	});
+
+	$('#authusersbutton').on('click', function (e) {
+		var req = $.getJSON(
+			"/users/toggle-auth/{{ userinfo.id }}/users",
+			function( data ) { update_auth_button(data, '#authusersbutton', 'auth_users'); }
+		);
+	});
+	</script>
+
+{% endblock content %}

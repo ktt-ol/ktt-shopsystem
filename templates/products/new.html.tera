@@ -1,0 +1,7 @@
+{% extends "base" %}
+{% block title %}New Product{% endblock title %}
+{% block content %}
+	<p>The new product has been created and is now available here:</p>
+
+	<p><a href="/products/{{ ean }}/">{{ name }}</a></p>
+{% endblock content %}

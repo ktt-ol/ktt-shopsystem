@@ -1,0 +1,20 @@
+{% extends "base" %}
+{% block title %}User Import{% endblock title %}
+{% block content %}
+	<div class="container">
+		<h2>User Import</h2>
+		{% if session.auth_users %}
+		<form action="#" method="post" enctype="multipart/form-data" class="form-inline">
+			<div class="input-group mb-3">
+				<label class="input-group-text" for="file">CSV</label>
+				<input type="file" id="file" name="file" accept="text/csv,.csv" class="form-control" />
+			</div>
+			<input type="submit" value="Upload" class="form-control " />
+		</form>
+		{% else %}
+		<div class="alert alert-danger">
+			You are missing the correct permission to upload a user CSV file.
+		</div>
+		{% endif %}
+	</div>
+{% endblock content %}

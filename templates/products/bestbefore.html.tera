@@ -1,0 +1,30 @@
+{% extends "base" %}
+{% block title %}Best Before Date{% endblock title %}
+{% block content %}
+	<div class="container">
+		<table id="producttable" class="table table-bordered table-striped table-hover">
+			<thead>
+				<tr>
+					<th scope="col">EAN</th>
+					<th scope="col">Name</th>
+					<th scope="col">Amount</th>
+					<th scope="col">Best Before</th>
+				</tr>
+			</thead>
+			<tbody class="table-group-divider">
+				{% for product in list %}<tr>
+					<td><a href="/products/{{ product.ean }}">{{ product.ean }}</a></td>
+					<td><a href="/products/{{ product.ean }}">{{ product.name }}</a></td>
+					<td>{{ product.amount }}</td>
+					<td>{{ product.best_before_date | date(format="%Y-%m-%d %H:%M", timezone="Europe/Berlin") }}</td>
+				</tr>{% endfor %}
+			</tbody>
+		</table>
+	</div>
+
+	<script type="text/javascript">
+	$(document).ready( function () {
+	    $('#producttable').DataTable({"lengthMenu": [ [25, 50, 100, -1], [25, 50, 100, "All"] ] });
+	} );
+	</script>
+{% endblock content %}

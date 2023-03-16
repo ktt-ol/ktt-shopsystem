@@ -1,0 +1,5 @@
+{% extends "base" %}
+{% block title %}Home{% endblock title %}
+{% block content %}
+	cya
+{% endblock content %}

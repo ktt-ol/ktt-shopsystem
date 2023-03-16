@@ -1,0 +1,5 @@
+{% extends "base" %}
+{% block title %}New Supplier{% endblock title %}
+{% block content %}
+	<p>The new supplier {{ name }} has been created.</p>
+{% endblock content %}

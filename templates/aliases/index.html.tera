@@ -1,0 +1,28 @@
+{% extends "base" %}
+{% block title %}Aliases{% endblock title %}
+{% block content %}
+	<div class="container">
+		<table id="producttable" class="table table-bordered table-striped table-hover">
+			<thead>
+				<tr>
+					<th scope="col">EAN</th>
+					<th scope="col">Real EAN</th>
+					<th scope="col">Name</th>
+				</tr>
+			</thead>
+			<tbody class="table-group-divider">
+				{% for alias in list %}<tr>
+					<td>{{alias.ean}}</td>
+					<td><a href="/products/{{alias.real_ean}}">{{alias.real_ean}}</a></td>
+					<td><a href="/products/{{alias.real_ean}}">{{alias.name}}</a></td>
+				</tr>{% endfor %}
+			</tbody>
+		</table>
+	</div>
+
+	<script type="text/javascript">
+	$(document).ready( function () {
+	    $('#producttable').DataTable({"lengthMenu": [ [25, 50, 100, -1], [25, 50, 100, "All"] ] });
+	} );
+	</script>
+{% endblock content %}

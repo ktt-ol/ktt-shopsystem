@@ -1,0 +1,217 @@
+{% extends "base" %}
+{% block title %}Product Info{% endblock title %}
+{% block content %}
+	<div class="container">
+		<div class="row align-items-start">
+			<div class="col">
+				<h2>Product Info</h2>
+
+				<table id="productinfotable" class="table table-bordered table-striped table-hover table-nonfluid">
+					<tr><th scope="row">EAN</th><td>{{ ean }}</td>
+					<tr>
+						<th scope="row">Aliases</th>
+						<td>
+							<ul id="aliaslist">
+								{% for alias in aliases %}<li>{{alias}}</li>
+								{% endfor %}
+							</ul>
+							{% if session.auth_products %}
+							<!-- /products/<ean>/add-alias/<alias> -->
+							<form onsubmit="event.preventDefault(); submit_add_alias();">
+								<div class="input-group">
+									<input id="alias" name="alias" placeholder="EAN" aria-label="EAN" type="number" class="form-control">
+									<a id="addalias" name="addalias" data-bs-trigger="focus" data-bs-custom-class="errorpopover" class="btn btn-primary" tabindex="0">Add Alias</a>
+								</div>
+							</form>
+							{% endif %}
+						</td>
+					<tr><th scope="row">Name</th><td id="productname">{{ name }}</td>
+					<tr><th scope="row">Category</th><td id="productcategory">{{ category }}</td>
+					<tr><th scope="row">Amount</th><td id="productamount">{{ amount }}</td>
+					<tr><th scope="row">State</th><td>{{ togglebutton(clickable=session.auth_products, enabled=not deprecated, buttonid="deprecatedbutton", enabledStr="Active", disabledStr="Deprecated") | safe }}</td>
+				</table>
+
+				<h2>Price History</h2>
+
+				<table id="pricehistorytable" class="table table-bordered table-striped table-hover">
+					<thead>
+						<tr>
+							<th scope="col">Valid Since</th>
+							<th scope="col">Member Price</th>
+							<th scope="col">Guest Price</th>
+						</tr>
+					</thead>
+					<tbody class="table-group-divider">
+						{% for price in prices %}<tr>
+							<td>{{price.timestamp | date(format="%Y-%m-%d %H:%M", timezone="Europe/Berlin") }}</td>
+							<td>{{price.memberprice | cent2euro}} €</td>
+							<td>{{price.guestprice | cent2euro}} €</td>
+						</tr>{% endfor %}
+					</tbody>
+				</table>
+
+				{% if session.auth_products %}
+				<form onsubmit="event.preventDefault(); submit_add_prices();">
+					<div class="input-group">
+						<input id="memberprice" name="memberprice" placeholder="Member" aria-label="Member price" type="text" class="form-control">
+						<input id="guestprice" name="guestprice" placeholder="Guest" aria-label="Guest price" type="text" class="form-control">
+						<input id="addprices" name="addprices" type="button" value="Add new prices" class="btn btn-primary">
+					</div>
+				</form>
+				{% endif %}
+			</div>
+			<div class="col">
+				<h2>Restock</h2>
+
+				<table id="restocktable" class="table table-bordered table-striped table-hover">
+					<thead>
+						<tr>
+							<th scope="col">Date</th>
+							<th scope="col">Amount</th>
+							<th scope="col">Unit Price</th>
+							<th scope="col">Supplier</th>
+							<th scope="col">Best Before Date</th>
+						</tr>
+					</thead>
+					<tbody class="table-group-divider">
+						{% for res in restock %}<tr>
+							<td>{{ res.timestamp | date(format="%Y-%m-%d %H:%M", timezone="Europe/Berlin") }}</td>
+							<td>{{ res.amount }}</td>
+							<td>{{ res.price | cent2euro }} €</td>
+							<td>{{ res.supplier }}</td>
+							<td>{{ res.best_before_date | date(format="%Y-%m-%d %H:%M", timezone="Europe/Berlin") }}</td>
+						</tr>{% endfor %}
+					</tbody>
+				</table>
+
+				{% if session.auth_products %}
+				<form onsubmit="event.preventDefault(); submit_restock();">
+					<div class="input-group">
+						<input id="amount" name="amount" placeholder="Amount" aria-label="Amount" type="text" class="form-control">
+						<input id="price" name="price" placeholder="Price per Piece" aria-label="Price per piece" type="text" class="form-control">
+						<select class="form-select" id="supplier" name="supplier" title="Supplier">
+							<option value="0">Unknown</option>
+							{% for supplier in suppliers %}
+								<option value="{{ supplier.id }}">{{ supplier.name }}</option>
+							{% endfor %}
+						</select>
+						<input id="best_before_date" name="best_before_date" type="date">
+						<input id="restock" name="restock" type="button" value="Restock" class="btn btn-primary">
+					</div>
+				</form>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+
+	<script type="text/javascript">
+	var prices_append = function(data) {
+		valid_since = ts2isotime(data['timestamp']);
+		memberprice = cent2euro(data['memberprice']);
+		guestprice = cent2euro(data['guestprice']);
+		$('#pricehistorytable > tbody:last-child').append('<tr><td>'+valid_since+'</td><td>'+memberprice+' €</td><td>'+guestprice+' €</td></tr>');
+	}
+
+	var restock_append = function(data) {
+		date = ts2isotime(data['timestamp']);
+		amount = data['amount'];
+		price = cent2euro(data['price']);
+		supplier = data['supplier'];
+		bestbefore = ts2isotime(data['best_before_date']);
+		$('#restocktable > tbody:last-child').append('<tr><td>'+date+'</td><td>'+amount+'</td><td>'+price+' €</td><td>'+supplier+'</td><td>'+bestbefore+'</td></tr>');
+		var req = $.getJSON(
+			"/products/{{ ean }}/json",
+			function( data ) { $('#productamount').html(data['amount']); }
+		);
+	}
+
+	var alias_append = function(alias) {
+		$('#aliaslist').append('<li>'+alias+'</li>');
+	}
+
+	var submit_add_alias = function() {
+		var alias = parseInt($("#alias").val());
+
+		if (!isNaN(alias)) {
+			console.log("add alias: ", alias)
+			var req = $.getJSON(
+				"/products/{{ ean }}/add-alias/"+alias
+			);
+			req.done(function(data) {
+				alias_append(data);
+			});
+			req.fail(function(jqxhr, textStatus, error) {
+				bootstrap.Popover.getInstance($("#addalias"))._config.content = jqxhr.responseText;
+				bootstrap.Popover.getInstance($("#addalias")).setContent()
+				bootstrap.Popover.getInstance($("#addalias")).update()
+				bootstrap.Popover.getInstance($("#addalias")).enable()
+				bootstrap.Popover.getInstance($("#addalias")).show()
+			});
+		} else {
+			bootstrap.Popover.getInstance($("#addalias"))._config.content = "missing EAN";
+			bootstrap.Popover.getInstance($("#addalias")).setContent()
+			bootstrap.Popover.getInstance($("#addalias")).update()
+			bootstrap.Popover.getInstance($("#addalias")).enable()
+			bootstrap.Popover.getInstance($("#addalias")).show()
+		}
+	}
+
+	var submit_add_prices = function() {
+		var memberprice = euro2cent($("#memberprice").val());
+		var guestprice = euro2cent($("#guestprice").val());
+		var requestdata = { timestamp: 0, memberprice: memberprice, guestprice: guestprice };
+
+		if (!isNaN(memberprice) && !isNaN(guestprice)) {
+			console.log("add prices:", memberprice, guestprice);
+			var req = $.postJSON(
+				"/products/{{ ean }}/add-prices",
+				requestdata,
+				function( data ) { prices_append(data); }
+			);
+		}
+	}
+
+	var submit_restock = function() {
+		var amount = parseInt($("#amount").val());
+		var price = euro2cent($("#price").val());
+		var supplier = parseInt($("#supplier").val());
+		var bbd = isodate2ts($("#best_before_date").val())
+		var requestdata = { timestamp: 0, amount: amount, price: price, supplier: supplier, best_before_date: bbd };
+
+		if (!isNaN(amount) && !isNaN(price) && !isNaN(supplier) && !isNaN(bbd)) {
+			console.log("restock:", amount, price, supplier, bbd);
+			var req = $.postJSON(
+				"/products/{{ ean }}/restock",
+				requestdata,
+				function( data ) { restock_append(data); }
+			);
+		}
+	}
+
+	{% if session.auth_products %}
+	$(function () {
+		$('#addalias').popover({
+			placement: 'left',
+			trigger: 'focus',
+			html: true,
+			title: "Error",
+		});
+
+		$("#addalias").on('hide.bs.popover', function() {
+			bootstrap.Popover.getInstance($("#addalias")).disable()
+		});
+	});
+	$('#addalias').on('click', function (e) { submit_add_alias(); });
+	$('#addprices').on('click', function (e) { submit_add_prices(); });
+	$('#restock').on('click', function (e) { submit_restock(); });
+
+	$('#deprecatedbutton').on('click', function (e) {
+		var state = $('#deprecatedbutton').html() === "Active";
+		var req = $.getJSON(
+			"/products/{{ ean }}/deprecate/"+state,
+			function( data ) { toggle_button('#deprecatedbutton', 'Active', 'Deprecated', !data); }
+		);
+	});
+	{% endif %}
+	</script>
+{% endblock content %}

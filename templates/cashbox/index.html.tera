@@ -1,0 +1,119 @@
+{% extends "base" %}
+{% block title %}Cashbox{% endblock title %}
+{% block content %}
+	<div class="container">
+		<div class="row align-items-start">
+			<div class="col">
+				<h2>Current Cashbox Status</h2>
+
+				<div class="input-group input-group-lg">
+					<input name="status" id="status" type="text" class="form-control" type="number" readonly="readonly" aria-label="current cashbox amount" value="loading..."/>
+					<span class="input-group-text">€</span>
+				</div>
+
+				<h2>Update Cashbox</h2>
+
+				<form action="#" class="form-inline">
+					<div class="input-group">
+						<select id="update_type" name="update_type" size="1" class="form-select">
+							<option value="Loss">Loss (Money is missing from the cashbox)</option>
+							<option value="Withdrawal">Withdrawal (You removed money from the cashbox)</option>
+							<option value="Donation">Donation (Cashbox has more money, than there should be)</option>
+							<option value="Deposit">Deposit (You added money to the cashbox)</option>
+						</select>
+						<input id="amount" name="amount" type="number" placeholder="Amount (in Cent)" class="form-control">
+						<div class="input-group-text">Cent</div>
+						<a id="addentry" name="addentry" data-bs-trigger="focus" data-bs-custom-class="errorpopover" class="btn btn-primary" tabindex="0"><b class="bi bi-plus-lg"></b></a>
+					</div>
+				</form>
+
+				<h2>Details</h2>
+				<div class="input-group">
+					<input id="yearDetail" class="form-control" type="number" placeholder="Year">
+					<input id="monthDetail" class="form-control" type="number" placeholder="Month">
+					<button class="btn btn-secondary" onclick="showDetails()">Show Details</button>
+				</div>
+			</div>
+			<div class="col">
+				<h2>History (last ten updates)</h2>
+
+				<table id="producttable" class="table table-bordered table-striped table-hover">
+					<thead>
+						<tr>
+							<th scope="col">Date & Time</th>
+							<th scope="col">Name</th>
+							<th scope="col">Amount</th>
+						</tr>
+					</thead>
+					<tbody class="table-group-divider">
+						{% for entry in cashbox_history %}<tr>
+							<td>{{entry.timestamp | date(format="%Y-%m-%d %H:%M", timezone="Europe/Berlin") }}</td>
+							<td>{{entry.username }}</td>
+							<td>{{entry.amount | cent2euro}} €</td>
+						</tr>{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+
+	<script>
+	function refreshStatus() {
+		var req = $.getJSON("/cashbox/status");
+		req.done(function(data) {
+			$("#status").attr("value", cent2euro(data))
+		});
+		req.fail(function(data) {
+			$("#status").attr("value", "")
+		});
+	}
+	refreshStatus();
+
+	function showDetails() {
+		var year = document.getElementById("yearDetail").value;
+		var month = document.getElementById("monthDetail").value;
+		location.href = location.pathname + "/details/" + year + "/" + month;
+	}
+
+	$(function () {
+		$('#addentry').popover({
+			placement: 'left',
+			trigger: 'focus',
+			html: true,
+			title: "Error",
+		});
+		const myPopoverTrigger = document.getElementById('myPopover')
+
+		$("#addentry").on('hide.bs.popover', function() {
+			bootstrap.Popover.getInstance($("#addentry")).disable()
+		});
+	});
+
+	$('#addentry').on('click', function (e) {
+		var amount = euro2cent($("#amount").val());
+		var update_type = $("#update_type").val();
+		requestdata = {update_type: update_type, amount: amount};
+
+		if (!isNaN(amount)) {
+			console.log("add entry: ", requestdata)
+			var req = $.postJSON("/cashbox/update", requestdata);
+			req.done(function(data) {
+				location.reload();
+			});
+			req.fail(function(jqxhr, textStatus, error) {
+				bootstrap.Popover.getInstance($("#addentry"))._config.content = jqxhr.responseText;
+				bootstrap.Popover.getInstance($("#addentry")).setContent()
+				bootstrap.Popover.getInstance($("#addentry")).update()
+				bootstrap.Popover.getInstance($("#addentry")).enable()
+				bootstrap.Popover.getInstance($("#addentry")).show()
+			});
+		} else {
+			bootstrap.Popover.getInstance($("#addentry"))._config.content = "missing EAN";
+			bootstrap.Popover.getInstance($("#addentry")).setContent()
+			bootstrap.Popover.getInstance($("#addentry")).update()
+			bootstrap.Popover.getInstance($("#addentry")).enable()
+			bootstrap.Popover.getInstance($("#addentry")).show()
+		}
+	});
+	</script>
+{% endblock content %}

@@ -1,0 +1,55 @@
+{% extends "base" %}
+{% block title %}Products{% endblock title %}
+{% block content %}
+	<div class="container">
+		{% if session.auth_products %}
+		<h2>New product</h2>
+		<div id="newproduct">
+			<form action="/products/new" method="post" class="form-inline">
+				<div class="input-group mb-3">
+					<input class="form-control" name="id" type="number" min="0" placeholder="EAN" />
+					<input class="form-control" name="name" type="text" placeholder="Name" />
+					<select class="form-select" name="category" title="Category">
+						{% for category in categories %}
+							<option value="{{ category.id }}">{{ category.name }}</option>
+						{% endfor %}
+					</select>
+					<input class="form-control" name="memberprice" type="number" step="0.01" min="0.01" placeholder="Memberprice" />
+					<input class="form-control" name="guestprice"  type="number" step="0.01" min="0.01" placeholder="Guestprice" />
+					<button type="submit" class="form-control btn btn-primary"><span class="bi-plus-lg" aria-hidden="true"></span></button>
+				</div>
+			</form>
+		</div>
+		{% endif %}
+
+		<h2>Productlist</h2>
+		<table id="producttable" class="table table-bordered table-striped table-hover">
+			<thead>
+				<tr>
+					<th scope="col">EAN</th>
+					<th scope="col">Name</th>
+					<th scope="col">Category</th>
+					<th scope="col">Amount</th>
+					<th scope="col">Memberprice</th>
+					<th scope="col">Guestprice</th>
+				</tr>
+			</thead>
+			<tbody class="table-group-divider">
+				{% for product in products %}<tr>
+					<td><a href="/products/{{product.ean}}">{{product.ean}}</a></td>
+					<td><a href="/products/{{product.ean}}">{{product.name}}</a></td>
+					<td>{{product.category}}</td>
+					<td>{{product.amount}}</td>
+					<td>{{product.memberprice | cent2euro}} €</td>
+					<td>{{product.guestprice | cent2euro}} €</td>
+				</tr>{% endfor %}
+			</tbody>
+		</table>
+	</div>
+
+	<script type="text/javascript">
+	$(document).ready( function () {
+	    $('#producttable').DataTable({"lengthMenu": [ [25, 50, 100, -1], [25, 50, 100, "All"] ] });
+	} );
+	</script>
+{% endblock content %}

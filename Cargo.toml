@@ -1,0 +1,33 @@
+[package]
+name = "ktt-shopsystem"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rocket = { version = "0.5.0-rc.2", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+rocket_dyn_templates = { version = "0.1.0-rc.2", features = ["tera"] }
+serde = { version = "1.0" }
+serde_json = { version = "1.0" }
+zbus = { version = "3", default-features = false, features = ["tokio"] }
+rand = { version = "0.8" }
+chrono = { version = "0.4", features = ["serde"] }
+csv = { version = "1.1" }
+gstreamer = { version = "0.20.0" }
+configparser = { version = "3.0" }
+r2d2_sqlite = { version = "0.21.0", features = ["bundled"] }
+r2d2 = { version = "0.8.10" }
+sha2 = { version = "0.10" }
+hex = { version = "0.4" }
+cairo-rs = { version = "0.17" , features = ["pdf"] }
+pango = { version = "0.17" }
+pangocairo = { version = "0.17" }
+regex = { version = "1.7.1" }
+librsvg = { git = "https://gitlab.gnome.org/GNOME/librsvg" }
+lettre = { version = "0.10", default-features = false, features = ["builder", "hostname", "smtp-transport", "tokio1", "rustls-tls", "tokio1-rustls-tls"] }
+clap = { version = "4.0", features = ["derive"] }
+gpgme = { version = "0.11" }
+compress-tools = { version = "0.14.0" }
+tui = { version = "0.19" }
+crossterm = { version = "0.25" }
+async-recursion = { version = "1.0" }

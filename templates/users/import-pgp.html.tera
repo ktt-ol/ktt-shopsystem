@@ -1,0 +1,23 @@
+{% extends "base" %}
+{% block title %}PGP Key Import{% endblock title %}
+{% block content %}
+	<div class="container">
+		<h2>Import PGP Keys</h2>
+
+		{% if session.auth_users %}
+		<p>Please provide zip archive or compressed tarball with public keys:</p>
+
+		<form action="#" method="post" enctype="multipart/form-data" class="form-inline">
+			<div class="input-group mb-3">
+				<label class="input-group-text" for="file">Archive</label>
+				<input type="file" id="file" name="file" accept="application/zip,application/x-gtar,application/gzip,application/x-gzip,application/x-bzip2,application/x-xz,.zip,.tar.gz,.tar.bz2,.tar.xz" class="form-control" />
+			</div>
+			<input type="submit" value="Upload" class="form-control " />
+		</form>
+		{% else %}
+		<div class="alert alert-danger">
+			You are missing the correct permission to upload a PGP key archive.
+		</div>
+		{% endif %}
+	</div>
+{% endblock content %}

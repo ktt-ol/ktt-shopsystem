@@ -1,0 +1,125 @@
+{% extends "base" %}
+{% block title %}Inventory{% endblock title %}
+{% block content %}
+	<h2>Inventory</h2>
+
+	<form id="inventory" onsubmit="event.preventDefault();">
+		<div id="applysettings" style="padding-bottom: 10px;">
+			<div class="input-group">
+				<label class="form-label col-sm-3">Select the supplier for the restock action.</label>
+				<div class="col-sm-3">
+					<select id="supplierselect" name="supplier" class="form-select">
+						<option value="0">Unknown</option>
+						{% for supplier in suppliers %}
+							<option value="{{ supplier.id }}">{{ supplier.name }}</option>
+						{% endfor %}
+					</select>
+				</div>
+			</div>
+			<div class="input-group">
+				<label class="form-label col-sm-3">Select the Shop User for loss transaction.</label>
+				<div class="col-sm-3">
+					<select id="userselect" name="user" class="form-select">
+						{% for sysuser in sysusers %}
+							<option value="{{ sysuser.0 }}">{{ sysuser.1 }} ({{ sysuser.0 }})</option>
+						{% endfor %}
+					</select>
+				</div>
+			</div>
+		</div>
+
+		<table id="producttable" class="table table-bordered table-striped table-hover">
+			<thead>
+				<tr>
+					<th scope="col">EAN</th>
+					<th scope="col">Name</th>
+					<th scope="col">Category</th>
+					<th scope="col">Expected Amount</th>
+					<th scope="col">Real Amount</th>
+				</tr>
+			</thead>
+			<tbody id="producttablebody" class="table-group-divider">
+				{% for product in products %}<tr>
+					<td><a href="/products/{{product.ean}}">{{product.ean}}</a></td>
+					<td><a id="name-{{ product.ean }}" href="/products/{{product.ean}}">{{product.name}}</a></td>
+					<td id="category-{{ product.ean }}">{{product.category}}</td>
+					<td id="amount-{{ product.ean }}">{{product.amount}}</td>
+					<td><input type="number" name="{{ product.ean }}" tabindex="{{ loop.index }}"></td>
+				</tr>{% endfor %}
+			</tbody>
+		</table>
+
+		<button id="preview" type="button" class="btn btn-primary float-end">Preview</button>
+		<button id="apply" type="button" class="btn btn-primary float-end d-none">Apply Changes</button>
+	</form>
+
+	<script type="text/javascript">
+		$('#preview').on('click', function (e) {
+			var formData = $("#inventory").serializeArray();
+			countedData = [];
+			addSupplier = NaN;
+			remUser = NaN;
+			formData.forEach((element) => {
+				if (element.name == "user") {
+					remUser = parseInt(element.value);
+				} else if (element.name == "supplier") {
+					addSupplier = parseInt(element.value);
+				} else if (element.value) {
+					var ean = parseInt(element.name);
+					var name = $('#name-'+ean).html();
+					var category = $('#category-'+ean).html();
+					var old_amount = parseInt($('#amount-'+ean).html());
+					var new_amount = parseInt(element.value);
+					countedData.push({ean: ean, name: name, category: category, old_amount: old_amount, new_amount: new_amount});
+				}
+			});
+
+			$('#producttablebody').empty();
+			countedData.forEach((p) => {
+				var diff = p.new_amount - p.old_amount;
+				if (diff < 0) {
+					var rowclass = "table-danger";
+				} else {
+					var rowclass = "table-success";
+				}
+				$('#producttablebody').append("<tr class=\""+rowclass+"\"><td>"+p.ean+"</td><td>"+p.name+"</td><td>"+p.category+"</td><td>"+p.old_amount+"</td><td>"+p.new_amount+" <b>["+diff+"]</b></td></tr>");
+			});
+			$('#preview').addClass("d-none");
+			$('#userselect').attr("disabled", true);
+			$('#supplierselect').attr("disabled", true);
+			$('#apply').removeClass("d-none");
+		});
+
+		var applied = function() {
+			$('#apply').addClass("d-none");
+			$('#producttable').after("<div class=\"alert alert-success\">Success! Every change was added. Thank you!</div>");
+		}
+
+		$('#apply').on('click', function (e) {
+			console.log("inventory", addSupplier, remUser, countedData);
+
+			var operations = [];
+			countedData.forEach((p) => {
+				var diff = p.new_amount - p.old_amount;
+				if (diff) {
+					operations.push({
+						ean: p.ean,
+						diff: p.new_amount - p.old_amount
+					});
+				}
+			});
+
+			var requestdata = {
+				supplier: addSupplier,
+				user: remUser,
+				operations: operations
+			};
+
+			var req = $.postJSON(
+				"/products/inventory/apply",
+				requestdata,
+				function( data ) { applied(data); }
+			);
+		});
+	</script>
+{% endblock content %}

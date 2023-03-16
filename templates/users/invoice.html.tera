@@ -1,0 +1,57 @@
+{% extends "base" %}
+{% block title %}Invoice{% endblock title %}
+{% block content %}
+	<div class="container">
+		<h2>Invoice</h2>
+
+		<nav class="navbar navbar-expand-lg bg-body-tertiary">
+			<a class="navbar-brand" href="#">Choose Invoice Period:</a>
+			<ul class="navbar-nav">
+				<li class="nav-item dropdown">
+					<a id="year" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" href="#" aria-expanded="false">{{year}} <span class="caret"></span></a>
+					<ul class="dropdown-menu" aria-labelledby="year">
+						{% for y in range(start=firstyear,end=lastyear+1) %}
+						<li><a class="dropdown-item" href="/users/{{user_id}}/invoice/{{y}}/{{month}}/{{day}}">{{y}}</a></li>
+						{% endfor %}
+					</ul>
+				</li>
+				<li class="nav-item dropdown">
+					<a id="month" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" href="#" aria-expanded="false">{{monthname}} <span class="caret"></span></a>
+					<ul class="dropdown-menu" aria-labelledby="month">
+						{% for m in monthlist %}
+						<li><a class="dropdown-item{% if m.disabled %} disabled{% endif %}" href="/users/{{user_id}}/invoice/{{year}}/{{ m.id }}/{% if m.id != 0 %}{{day}}{% else %}0{% endif %}">{{ m.name }}</a></li>
+						{% endfor %}
+					</ul>
+				</li>
+				<li class="nav-item dropdown two-columns">
+					<a id="day" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" href="#" aria-expanded="false">{% if day == 0 %}All Days{% else %}{{day}}{% endif %} <span class="caret"></span></a>
+					<ul class="dropdown-menu" aria-labelledby="day">
+						{% for d in daylist %}
+						<li><a class="dropdown-item{% if d.disabled %} disabled{% endif %}" href="/users/{{user_id}}/invoice/{{year}}/{{ month }}/{{ d.id }}">{{ d.name }}</a></li>
+						{% endfor %}
+					</ul>
+				</li>
+			</ul>
+		</nav>
+
+		<table class="table table-bordered table-striped">
+			<thead>
+				<tr>
+					<th scope="col">Date</th>
+					<th scope="col">Time</th>
+					<th scope="col">Product</th>
+					<th scope="col">Price</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for entry in invoicedata %}<tr>
+					<td>{{ entry.timestamp | date(format="%Y-%m-%d", timezone="Europe/Berlin") }}</td>
+					<td>{{ entry.timestamp | date(format="%H:%M:%S", timezone="Europe/Berlin") }}</td>
+					<td>{{ entry.product.name }}</td>
+					<td>{{ entry.price | cent2euro }} €</td>
+				</tr>{% endfor %}
+				<tr><th colspan="3">Sum</th><td>{{ sum | cent2euro }} €</td></tr>
+			</tbody>
+		</table>
+	</div>
+{% endblock content %}

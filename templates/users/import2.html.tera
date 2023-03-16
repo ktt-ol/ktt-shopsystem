@@ -1,0 +1,111 @@
+{% extends "base" %}
+{% block title %}User Import{% endblock title %}
+{% block content %}
+	<div class="container">
+		<h2>User Import</h2>
+		<p>The CSV contained the following changes:</p>
+
+		<table id="changestable" class="table table-bordered table-striped table-hover">
+			<thead>
+				<tr>
+					<th><span class="bi-plus-slash-minus"></span></th>
+					<th>ID</th>
+					<th>Firstname</th>
+					<th>Lastname</th>
+					<th>E-Mail</th>
+					<th>Gender</th>
+					<th>Street</th>
+					<th>PLZ</th>
+					<th>City</th>
+					<th>PGP</th>
+					<th>Hidden</th>
+					<th>Disabled</th>
+					<th>Joined at</th>
+					<th>RFID</th>
+					<th>Applied?</th>
+				</tr>
+			</thead>
+			<tbody class="table-group-divider">
+			{% for change in changes %}
+				{% if change.old %}
+				<tr class="table-danger">
+					<td><span class="bi-dash-circle"></span></td>
+					<td>{{ change.old.id }}</td>
+					<td>{{ change.old.firstname }}</td>
+					<td>{{ change.old.lastname }}</td>
+					<td>{{ change.old.email }}</td>
+					<td>{{ change.old.gender | gendericon | safe }}</td>
+					<td>{{ change.old.street }}</td>
+					<td>{{ change.old.postal_code }}</td>
+					<td>{{ change.old.city }}</td>
+					<td>{{ change.old.pgp }}</td>
+					<td>{{ change.old.hidden }}</td>
+					<td>{{ change.old.disabled }}</td>
+					<td>{{ change.old.joined_at | date(format="%Y-%m-%d", timezone="Europe/Berlin") }}</td>
+					<td><ul>{% for rfid in change.old.rfid %}
+						<li>{{ rfid }}</li>
+					{% endfor %}</ul></td>
+					<td id="change-{{change.old.id}}" {% if change.new %}rowspan="2"{% endif %}>pending</td>
+				</tr>
+				{% endif %}
+				{% if change.new %}
+				<tr class="table-success">
+					<td><span class="bi-plus-circle"></span></td>
+					<td>{{ change.new.id }}</td>
+					<td>{{ change.new.firstname }}</td>
+					<td>{{ change.new.lastname }}</td>
+					<td>{{ change.new.email }}</td>
+					<td>{{ change.new.gender | gendericon | safe }}</td>
+					<td>{{ change.new.street }}</td>
+					<td>{{ change.new.postal_code }}</td>
+					<td>{{ change.new.city }}</td>
+					<td>{{ change.new.pgp }}</td>
+					<td>{{ change.new.hidden }}</td>
+					<td>{{ change.new.disabled }}</td>
+					<td>{{ change.new.joined_at | date(format="%Y-%m-%d", timezone="Europe/Berlin") }}</td>
+					<td><ul>{% for rfid in change.new.rfid %}
+						<li>{{ rfid }}</li>
+					{% endfor %}</ul></td>
+					{% if not change.old %}<td id="change-{{change.new.id}}">pending</td>{%endif%}
+				</tr>
+				{% endif %}
+			{% endfor %}
+			</tbody>
+		</table>
+
+		<div id="applydiv" class="d-flex align-items-end flex-column">
+			<button id="apply" class="btn btn-primary" type="button">Apply</button>
+		</div>
+	</div>
+
+	<script type="text/javascript">
+		let changes = {{ changes | json_encode() | safe }};
+
+		var set_change_status = function(change, failed, message) {
+			var id = 0;
+			if (change.old) { id = change.old.id; } else { id = change.new.id }
+			var element = $('#change-'+id)
+			if (failed) {
+				element.html('<div id="popover-'+id+'" class="d-inline-block" data-bs-custom-class="errorpopover" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-placement="left" data-bs-title="Error" data-bs-content="'+message+'"><span class="bi-x-circle-fill"></span></div>');
+				$('#popover-'+id).popover();
+			} else {
+				element.html('<span class="bi-check-circle-fill"></span>');
+			}
+		}
+
+		$('#apply').on('click', function (e) {
+			$('#applydiv').addClass("d-none");
+			console.log("apply", changes);
+
+			changes.forEach(function(change) {
+				var req = $.postJSON("/users/import/apply", change);
+				req.done(function( data ) {
+					set_change_status(change, false, "");
+				});
+				req.fail(function( data ) {
+					set_change_status(change, true, data.responseText);
+				});
+			});
+		});
+	</script>
+{% endblock content %}

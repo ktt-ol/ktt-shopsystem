@@ -1,0 +1,97 @@
+
+<nav class="navbar navbar-expand-md navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/"><i width="16" height="16" class="bi me-2 opacity-50 theme-icon bi-cart3"></i>KtT Shopsystem</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDarkDropdown" aria-controls="navbarNavDarkDropdown" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNavDarkDropdown">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item dropdown">
+          <button class="btn btn-dark btn-link nav-link px-0 px-lg-2 dropdown-toggle d-flex align-items-center {% if page is starting_with("products/") %}active{% endif %}" data-bs-toggle="dropdown" aria-expanded="false">Products</button>
+          <ul class="dropdown-menu dropdown-menu-dark">
+            <li><a class="dropdown-item" href="/products/">List</a></li>
+            <li><a class="dropdown-item" href="/products/bestbefore">Best before dates</a></li>
+			{% if session.auth_products %}
+            <li><a class="dropdown-item" href="/products/inventory">Start inventory</a></li>
+			{% endif %}
+          </ul>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if page is starting_with("suppliers/") %}active{% endif %}" aria-current="page" href="/suppliers/">Suppliers</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if page is starting_with("aliases/") %}active{% endif %}" aria-current="page" href="/aliases/">Aliases</a>
+        </li>
+		{% if session.auth_cashbox %}
+        <li class="nav-item">
+          <a class="nav-link {% if page is starting_with("cashbox/") %}active{% endif %}" aria-current="page" href="/cashbox/">Cashbox</a>
+        </li>
+		{% endif %}
+		{% if session.auth_users %}
+        <li class="nav-item dropdown">
+          <button class="btn btn-dark btn-link nav-link px-0 px-lg-2 dropdown-toggle d-flex align-items-center {% if page is starting_with("users/") %}active{% endif %}" data-bs-toggle="dropdown" aria-expanded="false">Users</button>
+          <ul class="dropdown-menu dropdown-menu-dark">
+            <li><a class="dropdown-item" href="/users/">List</a></li>
+            <li><a class="dropdown-item" href="/users/import">Import</a></li>
+            <li><a class="dropdown-item" href="/users/import-pgp">Import PGP Keys</a></li>
+          </ul>
+        </li>
+		{% endif %}
+      </ul>
+      <ul class="navbar-nav nav pull-right">
+        <li class="nav-item dropdown">
+          <button class="btn btn-dark btn-link nav-link px-0 px-lg-2 dropdown-toggle d-flex align-items-center" id="bd-theme" data-bs-toggle="dropdown" aria-expanded="false">
+            <i width="16" height="16" class="bi my-1 theme-icon-active bi-circle-half"></i>
+            <span class="d-md-none ms-2">Toggle theme</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-dark" style="--bs-dropdown-min-width: 8rem;">
+            <li>
+              <button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="light">
+                <i width="16" height="16" class="bi me-2 opacity-50 theme-icon bi-sun-fill"></i>
+                Light
+                <i width="16" height="16" class="bi ms-auto d-none bi-check2"></i>
+              </button>
+            </li>
+            <li>
+              <button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="dark">
+                <i width="16" height="16" class="bi me-2 opacity-50 theme-icon bi-moon-stars-fill"></i>
+                Dark
+                <i width="16" height="16" class="bi ms-auto d-none bi-check2"></i>
+              </button>
+            </li>
+            <li>
+              <button type="button" class="dropdown-item d-flex align-items-center active" data-bs-theme-value="auto">
+                <i width="16" height="16" class="bi me-2 opacity-50 theme-icon bi-circle-half"></i>
+                Auto
+                <i width="16" height="16" fill="currentColor" class="bi ms-auto d-none bi-check2"></i>
+              </button>
+            </li>
+          </ul>
+        </li>
+		{% if session and session.uid != 0 %}
+        <li id="usermenu" class="nav-item dropdown">
+          <button class="btn btn-dark btn-link nav-link px-0 px-lg-2 dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown" aria-expanded="false">
+            <i width="16" height="16" class="bi my-1 theme-icon-active bi-person-fill"></i>
+		    <span class="ms-2">{{ session.name }}</span>
+		  </button>
+          <ul class="dropdown-menu dropdown-menu-dark">
+            <li><a class="dropdown-item" href="/users/{{ session.uid }}/">Personal Data</a></li>
+            <li><a class="dropdown-item" href="/users/{{ session.uid }}/invoice">Invoice</a></li>
+            <li><a class="dropdown-item" href="/users/{{ session.uid }}/stats">Statistics</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="/logout">Logout</a></li>
+          </ul>
+        </li>
+      </ul>
+		{% else %}
+      </ul>
+      <form action="/login" method="post" class="d-flex">
+        <input name="userid" class="form-control me-2" type="text" placeholder="User ID" aria-label="User ID">
+        <input name="password" class="form-control me-2" type="password" placeholder="Password" aria-label="Password">
+        <button id="submit" class="btn btn-outline-success" type="submit">Login</button>
+      </form>
+		{% endif %}
+    </div>
+  </div>
+</nav>
