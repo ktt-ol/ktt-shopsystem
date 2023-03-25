@@ -608,6 +608,18 @@ async fn cashbox_history() -> zbus::Result<Vec<CashboxDiff>> {
     proxy.cashbox_history().await
 }
 
+async fn cashbox_history_named() -> zbus::Result<Vec<NamedCashboxDiff>> {
+    let mut history = Vec::new();
+    for change in cashbox_history().await? {
+        history.push(NamedCashboxDiff {
+            username: if change.user == -3 && change.amount < 0 { String::from("Loss") } else if change.user == -3 { String::from("Donation") } else { get_username(change.user).await.expect("failed to get username") },
+            amount: change.amount,
+            timestamp: change.timestamp,
+        });
+    }
+    Ok(history)
+}
+
 async fn cashbox_changes(start: i64, stop: i64) -> zbus::Result<Vec<CashboxDiff>> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
@@ -1188,6 +1200,25 @@ async fn cashbox_state(cookies: &CookieJar<'_>) -> Result<Json<i32>, Forbidden<S
     Ok(Json(cashbox_status))
 }
 
+#[get("/cashbox/history")]
+async fn cashbox_history_json(cookies: &CookieJar<'_>) -> Result<Json<Vec<NamedCashboxDiff>>, Forbidden<String>> {
+    let session = match get_session(cookies).await {
+        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Ok(session) => session,
+    };
+
+    if !session.superuser && !session.auth_cashbox {
+        return Err(Forbidden(Some("Missing Permission".to_string())));
+    }
+
+    let cashbox_history = match cashbox_history_named().await {
+        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Ok(history) => history,
+    };
+
+    Ok(Json(cashbox_history))
+}
+
 #[get("/cashbox")]
 async fn cashbox(cookies: &CookieJar<'_>) -> Result<Template, WebShopError> {
     let session = get_session(cookies).await?;
@@ -1196,16 +1227,7 @@ async fn cashbox(cookies: &CookieJar<'_>) -> Result<Template, WebShopError> {
         return Err(WebShopError::PermissionDenied());
     }
 
-    let cashbox_history_raw = cashbox_history().await?;
-
-    let mut cashbox_history = Vec::new();
-    for change in cashbox_history_raw {
-        cashbox_history.push(NamedCashboxDiff {
-            username: if change.user == -3 && change.amount < 0 { String::from("Loss") } else if change.user == -3 { String::from("Donation") } else { get_username(change.user).await.expect("failed to get username") },
-            amount: change.amount,
-            timestamp: change.timestamp,
-        });
-    }
+    let cashbox_history = cashbox_history_named().await?;
 
     Ok(Template::render("cashbox/index", context! { page: "cashbox/index", session: session, cashbox_history: cashbox_history }))
 }
@@ -1733,7 +1755,7 @@ fn rocket() -> _ {
     rocket::build()
         .register("/", catchers![not_found])
         .mount("/static", rocket::fs::FileServer::from("templates/static/"))
-        .mount("/", routes![login, logout, index, products, product_new, product_details, product_details_json, web_product_deprecate, web_product_add_prices, web_product_restock, web_product_alias_add, product_bestbefore, product_inventory, product_inventory_apply, aliases, suppliers, web_suppliers_new, cashbox, cashbox_state, cashbox_update, cashbox_details, users, user_info, user_sound_theme_set, user_password_set, user_toggle_auth, user_invoice, user_invoice_full, user_stats, user_import, user_import_upload, user_import_apply, user_import_pgp, user_import_pgp_upload])
+        .mount("/", routes![login, logout, index, products, product_new, product_details, product_details_json, web_product_deprecate, web_product_add_prices, web_product_restock, web_product_alias_add, product_bestbefore, product_inventory, product_inventory_apply, aliases, suppliers, web_suppliers_new, cashbox, cashbox_state, cashbox_history_json, cashbox_update, cashbox_details, users, user_info, user_sound_theme_set, user_password_set, user_toggle_auth, user_invoice, user_invoice_full, user_stats, user_import, user_import_upload, user_import_apply, user_import_pgp, user_import_pgp_upload])
         .attach(Template::custom(|engines| {
             engines.tera.register_filter("cent2euro", cent2euro);
             engines.tera.register_filter("gendericon", gendericon);
