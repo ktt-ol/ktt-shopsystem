@@ -25,7 +25,11 @@ jobs:
         run: sudo apt install libcairo2-dev libpango1.0-dev libgpgme-dev libarchive-dev libgstreamer1.0-dev pkg-config
       - name: Prepare Rust
         run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - name: Install cargo-deb
+        run: cargo install cargo-deb
       - name: Build
         run: cargo build --verbose
       - name: Test
         run: cargo test --verbose
+      - name: Build Debian Package
+        run: cargo deb
