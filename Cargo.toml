@@ -1,7 +1,13 @@
 [package]
+publish = false
 name = "ktt-shopsystem"
 version = "0.1.0"
 edition = "2021"
+license = "ISC"
+authors = ["Sebastian Reichel <sre@mainframe.io>"]
+homepage = "https://github.com/ktt-ol/ktt-shopsystem/"
+description = "KtT Shopsystem"
+readme = "README.md"
 
 [dependencies]
 rocket = { version = "0.5.0-rc.2", features = ["json"] }
