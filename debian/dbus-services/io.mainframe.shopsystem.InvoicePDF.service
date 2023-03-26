@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=io.mainframe.shopsystem.InvoicePDF
+Exec=/usr/bin/ktt-shopsystem-pdf-invoice
+User=shop

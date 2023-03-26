@@ -4,6 +4,7 @@
 
 dbus-daemon --system
 cargo build --release
+cargo deb
 
 if [[ $? != 0 ]]; then
     echo "Build failed."

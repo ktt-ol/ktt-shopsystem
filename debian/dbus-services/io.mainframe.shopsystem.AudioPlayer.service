@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=io.mainframe.shopsystem.AudioPlayer
+Exec=/usr/bin/ktt-shopsystem-audio
+User=shop

@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=io.mainframe.shopsystem.Mail
+Exec=/usr/bin/ktt-shopsystem-mailer
+User=shop

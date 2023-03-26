@@ -37,3 +37,78 @@ compress-tools = { version = "0.14.0" }
 tui = { version = "0.19" }
 crossterm = { version = "0.25" }
 async-recursion = { version = "1.0" }
+
+[package.metadata.deb]
+maintainer = "Sebastian Reichel <sre@mainframe.io>"
+copyright = "2023, Sebastian Reichel <sre@mainframe.io>"
+extended-description = """\
+The software has been developed as a credit based system for members of the
+hackspace. The system depends on a USB HID barcode scanner, which is used
+to establish user sessions (by scanning CODE39 based user codes) and buying
+products (by scanning their EAN). The members receive an invoice at the end of
+the month, which is also send to the hackspace's treasurer for further processing."""
+depends = "$auto"
+section = "misc"
+priority = "optional"
+maintainer-scripts = "debian/"
+assets = [
+    ["target/release/audio", "usr/bin/ktt-shopsystem-audio", "755"],
+    ["target/release/backup", "usr/bin/ktt-shopsystem-backup", "755"],
+    ["target/release/config", "usr/bin/ktt-shopsystem-config", "755"],
+    ["target/release/database", "usr/bin/ktt-shopsystem-database", "755"],
+    ["target/release/frontend", "usr/bin/ktt-shopsystem-frontend", "755"],
+    ["target/release/invoice", "usr/bin/ktt-shopsystem-invoice", "755"],
+    ["target/release/mailer", "usr/bin/ktt-shopsystem-mailer", "755"],
+    ["target/release/pdf-invoice", "usr/bin/ktt-shopsystem-pdf-invoice", "755"],
+    ["target/release/pgp", "usr/bin/ktt-shopsystem-pgp", "755"],
+    ["target/release/web", "usr/bin/ktt-shopsystem-web", "755"],
+    ["README.md", "usr/share/doc/ktt-shopsystem/README", "644"],
+    ["debian/dbus-config/*", "usr/share/dbus-1/system.d/", "644"],
+    ["debian/dbus-services/*", "usr/share/dbus-1/services/", "644"],
+    ["data/config/*", "etc/shopsystem/", "644"],
+    ["data/invoice/*", "usr/share/shopsystem/invoice/", "644"],
+    ["data/sql/*", "usr/share/shopsystem/sql/", "644"],
+	# audio player sounds
+    ["data/sounds/system/*.ogg", "usr/share/shopsystem/sounds/system/", "644"],
+	["data/sounds/user/beep/error/*.ogg", "usr/share/shopsystem/sounds/user/beep/error/", "644"],
+	["data/sounds/user/beep/login/*.ogg", "usr/share/shopsystem/sounds/user/beep/login/", "644"],
+	["data/sounds/user/beep/logout/*.ogg", "usr/share/shopsystem/sounds/user/beep/logout/", "644"],
+	["data/sounds/user/beep/purchase/*.ogg", "usr/share/shopsystem/sounds/user/beep/purchase/", "644"],
+	["data/sounds/user/dude/error/*.ogg", "usr/share/shopsystem/sounds/user/dude/error/", "644"],
+	["data/sounds/user/dude/login/*.ogg", "usr/share/shopsystem/sounds/user/dude/login/", "644"],
+	["data/sounds/user/dude/logout/*.ogg", "usr/share/shopsystem/sounds/user/dude/logout/", "644"],
+	["data/sounds/user/dude/purchase/*.ogg", "usr/share/shopsystem/sounds/user/dude/purchase/", "644"],
+	["data/sounds/user/girlfriend/error/*.ogg", "usr/share/shopsystem/sounds/user/girlfriend/error/", "644"],
+	["data/sounds/user/girlfriend/login/*.ogg", "usr/share/shopsystem/sounds/user/girlfriend/login/", "644"],
+	["data/sounds/user/girlfriend/logout/*.ogg", "usr/share/shopsystem/sounds/user/girlfriend/logout/", "644"],
+	["data/sounds/user/girlfriend/purchase/*.ogg", "usr/share/shopsystem/sounds/user/girlfriend/purchase/", "644"],
+	["data/sounds/user/japanese/error/*.ogg", "usr/share/shopsystem/sounds/user/japanese/error/", "644"],
+	["data/sounds/user/japanese/login/*.ogg", "usr/share/shopsystem/sounds/user/japanese/login/", "644"],
+	["data/sounds/user/japanese/logout/*.ogg", "usr/share/shopsystem/sounds/user/japanese/logout/", "644"],
+	["data/sounds/user/japanese/purchase/*.ogg", "usr/share/shopsystem/sounds/user/japanese/purchase/", "644"],
+	["data/sounds/user/robot/error/*.ogg", "usr/share/shopsystem/sounds/user/robot/error/", "644"],
+	["data/sounds/user/robot/login/*.ogg", "usr/share/shopsystem/sounds/user/robot/login/", "644"],
+	["data/sounds/user/robot/logout/*.ogg", "usr/share/shopsystem/sounds/user/robot/logout/", "644"],
+	["data/sounds/user/robot/purchase/*.ogg", "usr/share/shopsystem/sounds/user/robot/purchase/", "644"],
+	["data/sounds/user/sexy/error/*.ogg", "usr/share/shopsystem/sounds/user/sexy/error/", "644"],
+	["data/sounds/user/sexy/login/*.ogg", "usr/share/shopsystem/sounds/user/sexy/login/", "644"],
+	["data/sounds/user/sexy/logout/*.ogg", "usr/share/shopsystem/sounds/user/sexy/logout/", "644"],
+	["data/sounds/user/sexy/purchase/*.ogg", "usr/share/shopsystem/sounds/user/sexy/purchase/", "644"],
+	# web templates
+	["templates/*", "usr/share/shopsystem/templates/", "644"],
+	["templates/aliases/*", "usr/share/shopsystem/templates/aliases/", "644"],
+	["templates/cashbox/*", "usr/share/shopsystem/templates/cashbox/", "644"],
+	["templates/products/*", "usr/share/shopsystem/templates/products/", "644"],
+	["templates/suppliers/*", "usr/share/shopsystem/templates/suppliers/", "644"],
+	["templates/users/*", "usr/share/shopsystem/templates/users/", "644"],
+	["templates/static/css/*", "usr/share/shopsystem/templates/static/css/", "644"],
+	["templates/static/css/fonts/*", "usr/share/shopsystem/templates/static/css/fonts/", "644"],
+	["templates/static/js/*", "usr/share/shopsystem/templates/static/js/", "644"],
+]
+systemd-units = [
+        { unit-name = "ktt-shopsystem-web", enable = false },
+        { unit-name = "ktt-shopsystem-frontend", enable = false },
+        { unit-name = "ktt-shopsystem-mail-backup", enable = false },
+        { unit-name = "ktt-shopsystem-mail-daily-invoice", enable = false },
+        { unit-name = "ktt-shopsystem-mail-monthly-invoice", enable = false },
+]

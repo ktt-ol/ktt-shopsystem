@@ -17,6 +17,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-host i686-unknown-linux-gnu -y
 
+RUN . $HOME/.cargo/env ; cargo install cargo-deb
+
 RUN set -ex && \
     useradd shop && \
     mkdir /var/run/dbus
