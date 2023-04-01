@@ -23,25 +23,36 @@
 		{% endif %}
 
 		<h2>Productlist</h2>
+		<b>Filter:</b>
+		<div class="form-check">
+			<input type="checkbox" class="form-check-input" id="hide-sold-out" name="hide-sold-out" checked />
+			<label class="form-check-label" for="hide-sold-out">Hide sold-out products</label>
+		</div>
+		<div class="form-check">
+			<input type="checkbox" class="form-check-input" id="hide-deprecated" name="hide-deprecated" checked />
+			<label class="form-check-label" for="hide-deprecated">Hide deprecated products</label>
+		</div>
 		<table id="producttable" class="table table-bordered table-striped table-hover">
 			<thead>
 				<tr>
-					<th scope="col">EAN</th>
+					<th scope="col">EANs</th>
 					<th scope="col">Name</th>
 					<th scope="col">Category</th>
 					<th scope="col">Amount</th>
 					<th scope="col">Memberprice</th>
 					<th scope="col">Guestprice</th>
+					<th scope="col">Deprecated</th>
 				</tr>
 			</thead>
 			<tbody class="table-group-divider">
 				{% for product in products %}<tr>
-					<td><a href="/products/{{product.ean}}">{{product.ean}}</a></td>
+					<td><a href="/products/{{product.ean}}">{{product.ean}}{% for alias in product.aliases %}, {{ alias }}{% endfor %}</a></td>
 					<td><a href="/products/{{product.ean}}">{{product.name}}</a></td>
 					<td>{{product.category}}</td>
 					<td>{{product.amount}}</td>
 					<td>{{product.memberprice | cent2euro}} €</td>
 					<td>{{product.guestprice | cent2euro}} €</td>
+					<td>{{product.deprecated}}</td>
 				</tr>{% endfor %}
 			</tbody>
 		</table>
@@ -49,7 +60,28 @@
 
 	<script type="text/javascript">
 	$(document).ready( function () {
-	    $('#producttable').DataTable({"lengthMenu": [ [25, 50, 100, -1], [25, 50, 100, "All"] ] });
+		var filter1 = $('#hide-sold-out');
+		var filter2 = $('#hide-deprecated');
+
+		$.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+			var hide_sold_out = filter1.is(':checked');
+			var hide_deprecated = filter2.is(':checked');
+			var amount = parseInt(data[3], 10);
+			var deprecated = data[6] == 'true';
+
+			if (amount == 0 && hide_sold_out)
+				return false;
+
+			if (deprecated && hide_deprecated)
+				return false;
+
+			return true;
+		});
+
+		table = $('#producttable').DataTable({"lengthMenu": [ [25, 50, 100, -1], [25, 50, 100, "All"] ] });
+
+		filter1.on('input', function () { table.draw(); });
+		filter2.on('input', function () { table.draw(); });
 	} );
 	</script>
 {% endblock content %}

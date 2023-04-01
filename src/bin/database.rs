@@ -56,6 +56,18 @@ struct DetailedProduct {
 }
 
 #[derive(Deserialize,Serialize, zbus::zvariant::Type)]
+struct DetailedProductInfo {
+	ean: u64,
+    aliases: Vec<u64>,
+	name: String,
+	category: String,
+	amount: i32,
+	memberprice: i32,
+	guestprice: i32,
+    deprecated: bool,
+}
+
+#[derive(Deserialize,Serialize, zbus::zvariant::Type)]
 struct PriceEntry {
 	valid_from: i64,
 	memberprice: i32,
@@ -210,6 +222,31 @@ impl Database {
 
 		Ok(result)
 	}
+
+    fn get_productlist(&mut self) -> Result<Vec<DetailedProductInfo>, DatabaseError> {
+		let mut result = Vec::new();
+        let query = "SELECT products.id, products.name, categories.name, amount, memberprice, guestprice, deprecated FROM products, prices, categories WHERE products.id = prices.product AND categories.id = products.category AND prices.valid_from = (SELECT valid_from FROM prices WHERE product = products.id ORDER BY valid_from DESC LIMIT 1) ORDER BY categories.name, products.name";
+        let connection = self.pool.get()?;
+        let mut statement = connection.prepare(query)?;
+        let mut rows = statement.query([])?;
+
+        while let Some(row) = rows.next()? {
+            let id = row.get(0)?;
+
+            result.push(DetailedProductInfo {
+                ean: id,
+                aliases: self.get_product_aliases(id)?,
+                name: row.get(1)?,
+                category: row.get(2)?,
+                amount: row.get(3)?,
+                memberprice: row.get(4)?,
+                guestprice: row.get(5)?,
+                deprecated: row.get(6)?,
+            });
+        }
+
+        Ok(result)
+    }
 
     fn get_stock(&mut self) -> Result<Vec<DetailedProduct>, DatabaseError> {
 		let mut result = Vec::new();

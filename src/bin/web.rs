@@ -216,6 +216,18 @@ pub struct StockItem {
     guestprice: i32,
 }
 
+#[derive(Type, Deserialize, Serialize)]
+pub struct DetailedProductInfo {
+	ean: u64,
+    aliases: Vec<u64>,
+	name: String,
+	category: String,
+	amount: i32,
+	memberprice: i32,
+	guestprice: i32,
+    deprecated: bool,
+}
+
 #[derive(Type, Clone, Copy, Deserialize, Serialize)]
 pub struct ProductDiff {
     ean: u64,
@@ -406,6 +418,7 @@ trait ShopDB {
     async fn set_sessionid(&self, userid: i32, sessionid: &str) -> zbus::Result<()>;
     async fn get_user_by_sessionid(&self, sessionid: &str) -> zbus::Result<i32>;
     async fn get_stock(&self) -> zbus::Result<Vec<StockItem>>;
+    async fn get_productlist(&self) -> zbus::Result<Vec<DetailedProductInfo>>;
     async fn restock(&self, user: i32, product: u64, amount: u32, price: u32, supplier: i32, best_before_date: i64) -> zbus::Result<()>;
     async fn buy(&self, user: i32, product: u64) -> zbus::Result<bool>;
     async fn new_price(&self, product: u64, timestamp: i64, memberprice: i32, guestprice: i32) ->  zbus::Result<()>;
@@ -504,6 +517,12 @@ async fn get_stock() -> zbus::Result<Vec<StockItem>> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.get_stock().await
+}
+
+async fn get_productlist() -> zbus::Result<Vec<DetailedProductInfo>> {
+    let connection = Connection::system().await?;
+    let proxy = ShopDBProxy::new(&connection).await?;
+    proxy.get_productlist().await
 }
 
 async fn get_prices(ean: u64) -> zbus::Result<Vec<PriceInfo>> {
@@ -856,7 +875,7 @@ async fn products(cookies: &CookieJar<'_>) -> Result<Template, WebShopError> {
 
     let categories = get_category_list().await?;
 
-    let stock = get_stock().await?;
+    let stock = get_productlist().await?;
     Ok(Template::render("products/index", context! { page: "products/index", session: session, categories: categories, products: stock }))
 }
 
