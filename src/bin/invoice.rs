@@ -252,7 +252,9 @@ pub enum RecipientType {
     default_service = "io.mainframe.shopsystem.Mail"
 )]
 trait ShopMail {
+    #[dbus_proxy(property)]
     fn set_from(&self, from: MailContact) -> zbus::Result<()>;
+    #[dbus_proxy(property)]
     fn set_subject(&self, subject: String) -> zbus::Result<()>;
 
     fn add_recipient(&self, contact: MailContact, recpttype: RecipientType) -> zbus::Result<()>;
