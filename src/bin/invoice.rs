@@ -374,7 +374,9 @@ impl Invoicer {
 			treasurer_mail.add_attachment("invoice.csv".to_string(), "text/csv; charset=utf-8".to_string(), csvinvoicedata.into()).await?;
 			treasurer_mail.add_attachment("jvereininvoice.csv".to_string(), "text/csv; charset=utf-8".to_string(), csvjvereininvoicedata.into()).await?;
 			mailer.send_mail(treasurer_path).await?;
-		}
+		} else {
+			mailer.delete_mail(treasurer_path).await?;
+        }
 
         Ok(())
 	}
