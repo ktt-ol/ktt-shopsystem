@@ -34,14 +34,14 @@ enum PDFError {
     StreamError(String),
 }
 
-impl From<librsvg::LoadingError> for PDFError {
-    fn from(err: librsvg::LoadingError) -> PDFError {
+impl From<rsvg::LoadingError> for PDFError {
+    fn from(err: rsvg::LoadingError) -> PDFError {
             PDFError::SVGLoadingError(err.to_string())
     }
 }
 
-impl From<librsvg::RenderingError> for PDFError {
-    fn from(err: librsvg::RenderingError) -> PDFError {
+impl From<rsvg::RenderingError> for PDFError {
+    fn from(err: rsvg::RenderingError) -> PDFError {
             PDFError::SVGRenderingError(err.to_string())
     }
 }
@@ -105,8 +105,8 @@ fn price_to_str(price: i32, with_euro: bool) -> String {
 
 impl PDFInvoiceRenderer {
 	fn render_svg(&self, ctx: &cairo::Context, rect: &cairo::Rectangle, file: String) -> Result<(), PDFError> {
-        let handle = librsvg::Loader::new().read_path(file)?;
-        let renderer = librsvg::CairoRenderer::new(&handle);
+        let handle = rsvg::Loader::new().read_path(file)?;
+        let renderer = rsvg::CairoRenderer::new(&handle);
         renderer.render_document(ctx, rect)?;
         Ok(())
 	}
