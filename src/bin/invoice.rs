@@ -51,6 +51,7 @@ impl From<std::io::Error> for InvoicerError {
     }
 }
 
+#[derive(Debug)]
 struct Timespan {
 	from: i64,
 	to: i64,
@@ -162,7 +163,7 @@ pub struct InvoiceEntry {
 	price: i32,
 }
 
-#[derive(Deserialize, Serialize, PartialEq, zbus::zvariant::Type)]
+#[derive(Deserialize, Serialize, PartialEq, Copy, Clone, zbus::zvariant::Type)]
 pub enum MessageType {
 	Plain,
 	Html
@@ -307,11 +308,11 @@ impl Invoicer {
 
 		/* title */
         let mailtitle = if temporary { "Getränkezwischenstand" } else { "Getränkerechnung" };
-        let mailtitle = format!("{} {} {}", mailtitle, startstring, stopstring);
-
-		println!("{}\n", mailtitle );
+        let mailtitle = format!("{} {} - {}", mailtitle, startstring, stopstring);
 
 		let users = get_users_with_sales(ts.from, ts.to).await?;
+
+		println!("{}\n{:?}\nUsers: {}", mailtitle, ts, users.len() );
 
 		let treasurer_path = mailer.create_mail().await?;
         let treasurer_mail = ShopMailProxy::builder(&dbus_connection).path(treasurer_path.clone())?.build().await?;
@@ -331,9 +332,9 @@ impl Invoicer {
 
             /* required to generate the correct invoice ID */
             if limit_to_user.is_some() {
-                if limit_to_user.unwrap() < userid {
+                if userid < limit_to_user.unwrap() {
                     continue;
-                } else if limit_to_user.unwrap() > userid {
+                } else if userid > limit_to_user.unwrap() {
                     break;
                 }
             }
@@ -342,6 +343,8 @@ impl Invoicer {
 			let invoicedata = self.generate_invoice(temporary, timestamp, userid, &invoiceid).await?;
 			let userdata = get_user_info(userid).await?;
 			let total_sum = get_user_invoice_sum(userid, tst.from, tst.to).await?;
+
+            println!("{} ({} {})...", userdata.id, &userdata.firstname, &userdata.lastname);
 
 			let mail_path = mailer.create_mail().await?;
             let mail = ShopMailProxy::builder(&dbus_connection).path(mail_path.clone())?.build().await?;
@@ -392,8 +395,6 @@ impl Invoicer {
         };
 
         let userdata = get_user_info(userid).await?;
-
-        println!("{} ({} {})...\n", userdata.id, &userdata.firstname, &userdata.lastname);
 
         let ts = Self::get_timespan(temporary, prevtimestamp);
 		let tst = Self::get_timespan(false, prevtimestamp);
@@ -466,7 +467,7 @@ impl Invoicer {
                 to: stop.timestamp() - 1,
             }
         } else {
-            let start = chrono::NaiveDate::from_ymd_opt(time.year(), time.month(), 1).unwrap().and_hms_opt(8, 0, 0).unwrap();
+            let start = chrono::NaiveDate::from_ymd_opt(time.year(), time.month(), 1).unwrap().and_hms_opt(0, 0, 0).unwrap();
             let start: chrono::DateTime<Local> = chrono::Local.from_local_datetime(&start).unwrap();
             let stop = start + chrono::Months::new(1);
 
@@ -486,7 +487,7 @@ impl Invoicer {
 	}
 
 	fn generate_invoice_message(&self, msgtype: MessageType, temporary: bool, address: &str, name: &str, entries: &Vec<InvoiceEntry>, total_sum: i32) -> Result<String, std::io::Error> {
-        let filename = match (MessageType::Html, temporary) {
+        let filename = match (msgtype, temporary) {
             (MessageType::Html, true) => "invoice.temporary.html",
             (MessageType::Plain, true) => "invoice.temporary.txt",
             (MessageType::Html, false) => "invoice.final.html",
@@ -552,14 +553,14 @@ impl Invoicer {
             let dt: chrono::DateTime<Local> = chrono::DateTime::from(dt);
             let newdate = dt.format("%Y-%m-%d").to_string();
             let time = dt.format("%H:%M:%S").to_string();
-            let date = if lastdate == newdate { String::new() } else { lastdate = newdate.clone(); newdate };
+            let date = if lastdate == newdate { "          ".to_string() } else { lastdate = newdate.clone(); newdate };
 
-            result.push_str(&format!(" | {} | {} | {}{} | {},{:02} € |\n", date, time, entry.product.name, " ".repeat(namelength-entry.product.name.len()), entry.price / 100, entry.price % 100));
+            result.push_str(&format!(" | {} | {} | {}{} | {:>3},{:02} € |\n", date, time, entry.product.name, " ".repeat(namelength-entry.product.name.len()), entry.price / 100, entry.price % 100));
 		}
 
 		// generate table footer
         result.push_str(&format!(" +------------+----------+-{}-+----------+\n", "-".repeat(namelength)));
-        result.push_str(&format!(" | Summe:                  {} | {},{:02} € |\n", " ".repeat(namelength), total / 100, total % 100));
+        result.push_str(&format!(" | Summe:                  {} | {:>3},{:02} € |\n", " ".repeat(namelength), total / 100, total % 100));
         result.push_str(&format!(" +-------------------------{}-+----------+\n", "-".repeat(namelength)));
 
 		result
