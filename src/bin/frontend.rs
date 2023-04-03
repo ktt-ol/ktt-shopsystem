@@ -148,7 +148,7 @@ fn asciify(time: &str) -> [String; 3] {
 
 fn clock<B: Backend>(f: &mut Frame<B>, draw_dots: bool, area: Rect) {
     let now = chrono::Local::now();
-    let date = now.format(" %d.%m.%Y ").to_string();
+    let date = now.format("      %d.%m.%Y").to_string();
     let time = if draw_dots {
         now.format("%H:%M").to_string()
     } else {
@@ -157,14 +157,13 @@ fn clock<B: Backend>(f: &mut Frame<B>, draw_dots: bool, area: Rect) {
     let time = asciify(&time);
 
     let text = vec![
+        Spans::from(Span::raw(date)),
         Spans::from(Span::raw("")),
         Spans::from(Span::styled(&time[0], Style::default().fg(Color::Red).add_modifier(Modifier::BOLD))),
         Spans::from(Span::styled(&time[1], Style::default().fg(Color::Red).add_modifier(Modifier::BOLD))),
         Spans::from(Span::styled(&time[2], Style::default().fg(Color::Red).add_modifier(Modifier::BOLD))),
     ];
-    let p = Paragraph::new(text)
-        .block(Block::default().title(date).borders(Borders::ALL))
-        .style(Style::default().fg(Color::White));
+    let p = Paragraph::new(text).style(Style::default().fg(Color::White));
     f.render_widget(p, area);
 }
 
@@ -177,9 +176,7 @@ fn logo<B: Backend>(f: &mut Frame<B>, area: Rect) {
         text.push(Spans::from(Span::styled(line, Style::default().fg(Color::Green))));
     }
 
-    let p = Paragraph::new(text)
-        .block(Block::default().title("").borders(Borders::ALL))
-        .style(Style::default().fg(Color::White));
+    let p = Paragraph::new(text).style(Style::default().fg(Color::White));
     f.render_widget(p, area);
 }
 
@@ -216,10 +213,10 @@ fn log<B: Backend>(f: &mut Frame<B>, area: Rect, logdata: &Vec<LogEntry>) {
 fn ui<B: Backend>(f: &mut Frame<B>, draw_dots: bool, logdata: &Vec<LogEntry>) {
     let vsplit = Layout::default()
         .direction(Direction::Vertical)
-        .margin(1)
+        .margin(0)
         .constraints(
             [
-                Constraint::Length(8),
+                Constraint::Length(6),
                 Constraint::Min(5),
             ].as_ref()
         )
@@ -229,7 +226,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, draw_dots: bool, logdata: &Vec<LogEntry>) {
         .constraints(
             [
                 Constraint::Min(20),
-                Constraint::Length(19),
+                Constraint::Length(17),
             ].as_ref()
         )
         .split(vsplit[0]);
