@@ -14,10 +14,10 @@
  */
 
 use std::{error::Error, future::pending};
-use std::collections::HashMap;
 use zbus::{Connection, ConnectionBuilder, dbus_interface, DBusError, dbus_proxy};
 use serde::{Serialize, Deserialize};
 use lettre::transport::smtp::authentication::Credentials;
+use std::collections::HashSet;
 use lettre::AsyncTransport;
 
 #[derive(Debug, DBusError)]
@@ -295,17 +295,14 @@ impl DBusMail {
 
 }
 
-struct MailEntry {
-    connection: zbus::Connection,
-}
-
 struct Mailer {
     server: String,
     port: u16,
     credentials: Credentials,
     starttls: bool,
     mailcounter: u64,
-    mails: HashMap<String,MailEntry>
+    mails: HashSet<String>,
+    mailconnection: zbus::Connection,
 }
 
 #[dbus_interface(name = "io.mainframe.shopsystem.Mailer")]
@@ -335,27 +332,21 @@ impl Mailer {
             },
         };
 
-        let connection = ConnectionBuilder::system()?
-            .name("io.mainframe.shopsystem.Mail")?
-            .serve_at(&dbuspath, mail)?
-            .build()
-            .await?;
+        self.mailconnection.request_name("io.mainframe.shopsystem.Mail").await?;
+        self.mailconnection.object_server().at(&dbuspath, mail).await?;
 
-        let entry = MailEntry {
-			connection: connection,
-        };
-        self.mails.insert(path.clone(), entry);
+        self.mails.insert(path.clone());
 		self.mailcounter += 1;
         Ok(path)
     }
 
     async fn delete_mail(&mut self, path: String) -> Result<(), MailerError> {
-        if !self.mails.contains_key(&path) {
+        if !self.mails.contains(&path) {
             return Err(MailerError::NoMail("No such mail".to_string()));
         }
 
         let dbuspath = zbus::zvariant::ObjectPath::try_from(path.clone())?;
-        let result = self.mails[&path].connection.object_server().remove::<DBusMail, &zbus::zvariant::ObjectPath>(&dbuspath).await?;
+        let result = self.mailconnection.object_server().remove::<DBusMail, &zbus::zvariant::ObjectPath>(&dbuspath).await?;
 
         if !result {
             return Err(MailerError::NoMail("Failed to remove mail".to_string()));
@@ -366,12 +357,12 @@ impl Mailer {
     }
 
     async fn send_mail(&self, path: String) -> Result<(), MailerError> {
-        if !self.mails.contains_key(&path) {
+        if !self.mails.contains(&path) {
             return Err(MailerError::NoMail("No such mail".to_string()));
         }
 
         let dbuspath = zbus::zvariant::ObjectPath::try_from(path.clone())?;
-        let srv = self.mails[&path].connection.object_server();
+        let srv = self.mailconnection.object_server();
         let iface = srv.interface::<_, DBusMail>(&dbuspath).await?;
         let mail = &iface.get_mut().await.mail;
         let mail = mail.generate()?;
@@ -439,7 +430,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         credentials: credentials,
         starttls: cfg_get_bool("MAIL", "starttls").await?,
         mailcounter: 0,
-        mails: HashMap::new(),
+        mails: HashSet::new(),
+        mailconnection: Connection::system().await?,
     };
 
     let _connection = ConnectionBuilder::system()?
