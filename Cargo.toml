@@ -37,6 +37,7 @@ compress-tools = { version = "0.14" }
 tui = { version = "0.19" }
 crossterm = { version = "0.26" }
 async-recursion = { version = "1.0" }
+textwrap = { version = "0.16" }
 
 [package.metadata.deb]
 maintainer = "Sebastian Reichel <sre@mainframe.io>"

@@ -181,11 +181,21 @@ fn logo<B: Backend>(f: &mut Frame<B>, area: Rect) {
 }
 
 fn log<B: Backend>(f: &mut Frame<B>, area: Rect, logdata: &Vec<LogEntry>) {
+    let linewidth = (area.width as usize) - 2;
+    let timestampwidth = "[00:00:00] ".len();
+    let wraplen = linewidth - timestampwidth;
     let items: Vec<ListItem> = logdata.iter().map(|logentry| {
         let lines = if logentry.logtype == LogType::DateChange {
             vec![Spans::from(Span::raw(format!("--- Date change {} ---", logentry.time.format("%d.%m.%Y"))))]
         } else {
-            vec![Spans::from(Span::raw(format!("[{}] {}", logentry.time.format("%H:%M:%S"), &logentry.msg)))]
+            let wrappedmsg = textwrap::wrap(&logentry.msg, wraplen);
+            wrappedmsg.iter().enumerate().map(|(i,line)| {
+                if i == 0 {
+                    Spans::from(Span::raw(format!("[{}] {}", logentry.time.format("%H:%M:%S"), line)))
+                } else {
+                    Spans::from(Span::raw(format!("           {}", line)))
+                }
+            }).collect()
         };
         let style = match logentry.logtype {
             LogType::Info => Style::default(),
