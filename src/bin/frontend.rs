@@ -439,6 +439,8 @@ fn code39_check(line: &str) -> bool {
 #[derive(PartialEq)]
 enum ShopInstruction {
     Invalid,
+    InvalidCode39Checksum,
+    BrokenUserID,
     Login,
     Logout,
     Revert,
@@ -466,10 +468,14 @@ impl ShopCommand {
 
         if line.starts_with("USER ") {
             if !is_code39 {
-                ShopCommand { instruction: ShopInstruction::Invalid, userid: None, productid: None, rfiddata: None }
+                ShopCommand { instruction: ShopInstruction::InvalidCode39Checksum, userid: None, productid: None, rfiddata: None }
             } else {
                 let userid: Option<i32> = line[5..line.len()-1].parse().ok();
-                ShopCommand { instruction: ShopInstruction::Login, userid: userid, productid: None, rfiddata: None }
+                if userid.is_none() {
+                    ShopCommand { instruction: ShopInstruction::BrokenUserID, userid: None, productid: None, rfiddata: None }
+                } else {
+                    ShopCommand { instruction: ShopInstruction::Login, userid: userid, productid: None, rfiddata: None }
+                }
             }
         } else if line == "GUEST" {
             ShopCommand { instruction: ShopInstruction::Login, userid: Some(0), productid: None, rfiddata: None }
@@ -611,8 +617,16 @@ impl ShopState {
 
             match cmd.instruction {
                 ShopInstruction::Invalid => {
-                    self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: "Invalid Command".to_string()});
+                    self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: "Invalid command".to_string()});
                     let _ = play_user(&self.audiotheme.as_ref().unwrap(), "error").await;
+                },
+                ShopInstruction::InvalidCode39Checksum => {
+                    self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: "Code39 checksum invalid".to_string()});
+                    let _ = play_system("error.ogg").await;
+                },
+                ShopInstruction::BrokenUserID => {
+                    self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: "Missing or invalid user ID".to_string()});
+                    let _ = play_system("error.ogg").await;
                 },
                 ShopInstruction::Login => {
                     self.execute( ShopCommand { instruction: ShopInstruction::Logout, userid: None, productid: None, rfiddata: None } ).await;
@@ -669,7 +683,15 @@ impl ShopState {
         } else {
             match cmd.instruction {
                 ShopInstruction::Invalid => {
-                    self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: "Invalid Command".to_string()});
+                    self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: "Invalid command".to_string()});
+                    let _ = play_system("error.ogg").await;
+                },
+                ShopInstruction::InvalidCode39Checksum => {
+                    self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: "Code39 checksum invalid".to_string()});
+                    let _ = play_system("error.ogg").await;
+                },
+                ShopInstruction::BrokenUserID => {
+                    self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: "Missing or invalid user ID".to_string()});
                     let _ = play_system("error.ogg").await;
                 },
                 ShopInstruction::Login => {
