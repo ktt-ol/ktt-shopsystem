@@ -1026,6 +1026,7 @@ async fn product_details_json(ean: u64) -> Result<Json<ProductDetails>, WebShopE
 
 #[get("/products/<ean>")]
 async fn product_details(cookies: &CookieJar<'_>, ean: u64) -> Result<Template, WebShopError> {
+    let ean = ean_alias_get(ean).await?;
     let session = get_session(cookies).await?;
     let aliases = get_product_aliases(ean).await?;
     let name = get_product_name(ean).await?;
