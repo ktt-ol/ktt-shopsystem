@@ -751,6 +751,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let _ = play_system("startup.ogg").await;
 
+    state.logdata.push(LogEntry{time: chrono::Local::now(), logtype: LogType::Info, msg: "System started up".to_string()});
+
     loop {
         terminal.draw(|f| ui(f, draw_dots, &state.logdata))?;
         tokio::select! {
