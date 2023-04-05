@@ -760,6 +760,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 match line.as_str() {
                     "exit"|"quit" => { break; },
                     "resize" => { continue; },
+                    "clear log" => { state.logdata.clear(); },
                     _ => {
                         state.execute(ShopCommand::parse(&line)).await;
                     },
