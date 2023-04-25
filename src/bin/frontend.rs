@@ -645,7 +645,11 @@ impl ShopState {
                         }
                     }
                     
-                    self.logdata.push(LogEntry{time: time, logtype: LogType::Info, msg: format!("Logout, bought {} articles for {}", self.cart.len(), price2str(sum))});
+                    if userid >= 0 {
+                        self.logdata.push(LogEntry{time: time, logtype: LogType::Info, msg: format!("Logout, bought {} articles for {}", self.cart.len(), price2str(sum))});
+                    } else {
+                        self.logdata.push(LogEntry{time: time, logtype: LogType::Info, msg: format!("Logout, bought {} articles", self.cart.len())});
+                    }
                     let _ = play_user(&self.audiotheme.as_ref().unwrap(), "logout").await;
                     self.user = None;
                     self.cart.clear();
@@ -665,7 +669,11 @@ impl ShopState {
                     let product = get_product_info_for_user(productid, userid).await;
                     match product {
                         Ok(product) => {
-                            self.logdata.push(LogEntry{time: time, logtype: LogType::Info, msg: format!("Add to 🛒: {} - {}", product.name, price2str(product.price))});
+                            if userid >= 0 {
+                                self.logdata.push(LogEntry{time: time, logtype: LogType::Info, msg: format!("Buy: {} - {}", product.name, price2str(product.price))});
+                            } else {
+                                self.logdata.push(LogEntry{time: time, logtype: LogType::Info, msg: format!("Buy: {}", product.name)});
+                            }
                             self.cart.push(product);
                             let _ = play_user(&self.audiotheme.as_ref().unwrap(), "purchase").await;
                         },
