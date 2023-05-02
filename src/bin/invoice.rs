@@ -208,7 +208,7 @@ async fn get_users_with_sales(start: i64, stop: i64) -> zbus::Result<Vec<i32>> {
 #[dbus_proxy(
     interface = "io.mainframe.shopsystem.InvoicePDF",
     default_service = "io.mainframe.shopsystem.InvoicePDF",
-    default_path = "/io/mainframe/shopsystem/pdf"
+    default_path = "/io/mainframe/shopsystem/invoicepdf"
 )]
 trait ShopPDF {
     #[dbus_proxy(property)]
