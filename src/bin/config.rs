@@ -39,7 +39,7 @@ impl Config {
 	}
 
 	fn get_string(&mut self, group_name: &str, key: &str) -> Result<String, ConfigError> {
-		self.file.get(group_name, key).ok_or(ConfigError::KeyFileError)
+		Ok(self.file.get(group_name, key).ok_or(ConfigError::KeyFileError)?.replace("\\n", "\n"))
 	}
 
 	fn get_boolean(&mut self, group_name: &str, key: &str) -> Result<bool, ConfigError> {
