@@ -420,7 +420,7 @@ trait ShopDB {
     async fn get_stock(&self) -> zbus::Result<Vec<StockItem>>;
     async fn get_productlist(&self) -> zbus::Result<Vec<DetailedProductInfo>>;
     async fn restock(&self, user: i32, product: u64, amount: u32, price: u32, supplier: i32, best_before_date: i64) -> zbus::Result<()>;
-    async fn buy(&self, user: i32, product: u64) -> zbus::Result<bool>;
+    async fn buy(&self, user: i32, product: u64) -> zbus::Result<()>;
     async fn new_price(&self, product: u64, timestamp: i64, memberprice: i32, guestprice: i32) ->  zbus::Result<()>;
     async fn get_prices(&self, ean: u64) -> zbus::Result<Vec<PriceInfo>>;
     async fn get_product_aliases(&self, ean: u64) -> zbus::Result<Vec<u64>>;
@@ -591,7 +591,7 @@ async fn restock(user: i32, product: u64, amount: u32, price: u32, supplier: i32
     proxy.restock(user, product, amount, price, supplier, best_before_date).await
 }
 
-async fn buy(user: i32, product: u64) -> zbus::Result<bool> {
+async fn buy(user: i32, product: u64) -> zbus::Result<()> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.buy(user, product).await
