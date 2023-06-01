@@ -282,7 +282,7 @@ impl Invoicer {
         let mailer = ShopMailerProxy::new(&dbus_connection).await?;
 
 		if !temporary {
-            let ts = chrono::DateTime::<Utc>::from_utc(chrono::NaiveDateTime::from_timestamp_opt(prevtimestamp, 0).unwrap(), Utc);
+            let ts = chrono::DateTime::<Utc>::from_utc(chrono::NaiveDateTime::from_timestamp_opt(timestamp, 0).unwrap(), Utc);
             let ts: chrono::DateTime<Local> = chrono::DateTime::from(ts);
             let ts = ts - chrono::Months::new(1);
             prevtimestamp = ts.timestamp();
