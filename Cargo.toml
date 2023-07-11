@@ -21,15 +21,15 @@ chrono = { version = "0.4", features = ["serde"] }
 csv = { version = "1.2" }
 gstreamer = { version = "0.20" }
 configparser = { version = "3.0" }
-r2d2_sqlite = { version = "0.21.0", features = ["bundled"] }
+r2d2_sqlite = { version = "0.22.0", features = ["bundled"] }
 r2d2 = { version = "0.8.10" }
 sha2 = { version = "0.10" }
 hex = { version = "0.4" }
 cairo-rs = { version = "0.17" , features = ["pdf"] }
 pango = { version = "0.17" }
 pangocairo = { version = "0.17" }
-regex = { version = "1.7" }
-librsvg = { git = "https://gitlab.gnome.org/GNOME/librsvg" }
+regex = { version = "1.9" }
+librsvg = { git = "https://gitlab.gnome.org/GNOME/librsvg", branch="librsvg-2.56" }
 lettre = { version = "0.10", default-features = false, features = ["builder", "hostname", "smtp-transport", "tokio1", "rustls-tls", "tokio1-rustls-tls"] }
 clap = { version = "4", features = ["derive"] }
 gpgme = { version = "0.11" }
