@@ -28,6 +28,7 @@ hex = { version = "0.4" }
 cairo-rs = { version = "0.17" , features = ["pdf"] }
 pango = { version = "0.17" }
 pangocairo = { version = "0.17" }
+gio = { version = "0.17" }
 regex = { version = "1.9" }
 librsvg = { git = "https://gitlab.gnome.org/GNOME/librsvg", branch="librsvg-2.56" }
 lettre = { version = "0.10", default-features = false, features = ["builder", "hostname", "smtp-transport", "tokio1", "rustls-tls", "tokio1-rustls-tls"] }
@@ -38,6 +39,7 @@ tui = { version = "0.19" }
 crossterm = { version = "0.26" }
 async-recursion = { version = "1.0" }
 textwrap = { version = "0.16" }
+barcoders = { version = "1.0", features = ["svg"] }
 
 [package.metadata.deb]
 maintainer = "Sebastian Reichel <sre@mainframe.io>"

@@ -274,6 +274,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "barcoders"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "298326aba91e0dd1acba62767652c7c9f4d45ada6804110278680c4f0c6e8ab7"
+
+[[package]]
 name = "base64"
 version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1745,6 +1751,7 @@ name = "ktt-shopsystem"
 version = "0.1.0"
 dependencies = [
  "async-recursion",
+ "barcoders",
  "cairo-rs",
  "chrono",
  "clap",
@@ -1752,6 +1759,7 @@ dependencies = [
  "configparser",
  "crossterm 0.26.1",
  "csv",
+ "gio",
  "gpgme",
  "gstreamer",
  "hex",
