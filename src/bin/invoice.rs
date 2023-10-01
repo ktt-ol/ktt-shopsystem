@@ -17,6 +17,7 @@ use clap::{ArgGroup, Parser};
 use zbus::{Connection, dbus_proxy, zvariant::Type};
 use serde::{Serialize, Deserialize};
 use chrono::{Datelike, offset::TimeZone, prelude::*};
+use unicode_segmentation::UnicodeSegmentation;
 
 static DAY_IN_SECONDS: i64 = 60*60*24;
 
@@ -524,7 +525,7 @@ impl Invoicer {
 	fn generate_invoice_table_text(entries: &Vec<InvoiceEntry>) -> String {
 		let mut result = String::new();
 
-		let article_minsize = "Artikel".len();
+		let article_minsize = "Artikel".graphemes(true).count();
 
 		// no articles bought
 		if entries.len() == 0 {
@@ -532,19 +533,19 @@ impl Invoicer {
         }
 
 		// get length of longest name + invoice sum
-		let mut namelength = article_minsize;
+		let mut maxnamelength = article_minsize;
 		let mut total = 0;
 		for entry in entries {
-			if namelength < entry.product.name.len() {
-				namelength = entry.product.name.len();
+			if maxnamelength < entry.product.name.graphemes(true).count() {
+				maxnamelength = entry.product.name.graphemes(true).count();
             }
 			total += entry.price;
 		}
 
 		// generate table header
-        result.push_str(&format!(" +------------+----------+-{}-+----------+\n", "-".repeat(namelength)));
-        result.push_str(&format!(" | Datum      | Uhrzeit  | Artikel{} | Preis    |\n", " ".repeat(namelength - article_minsize)));
-        result.push_str(&format!(" +------------+----------+-{}-+----------+\n", "-".repeat(namelength)));
+        result.push_str(&format!(" +------------+----------+-{}-+----------+\n", "-".repeat(maxnamelength)));
+        result.push_str(&format!(" | Datum      | Uhrzeit  | Artikel{} | Preis    |\n", " ".repeat(maxnamelength - article_minsize)));
+        result.push_str(&format!(" +------------+----------+-{}-+----------+\n", "-".repeat(maxnamelength)));
 
 		// generate table data
 		let mut lastdate = String::new();
@@ -554,14 +555,15 @@ impl Invoicer {
             let newdate = dt.format("%Y-%m-%d").to_string();
             let time = dt.format("%H:%M:%S").to_string();
             let date = if lastdate == newdate { "          ".to_string() } else { lastdate = newdate.clone(); newdate };
+            let namelength = entry.product.name.graphemes(true).count();
 
-            result.push_str(&format!(" | {} | {} | {}{} | {:>3},{:02} € |\n", date, time, entry.product.name, " ".repeat(namelength-entry.product.name.len()), entry.price / 100, entry.price % 100));
+            result.push_str(&format!(" | {} | {} | {}{} | {:>3},{:02} € |\n", date, time, entry.product.name, " ".repeat(maxnamelength-namelength), entry.price / 100, entry.price % 100));
 		}
 
 		// generate table footer
-        result.push_str(&format!(" +------------+----------+-{}-+----------+\n", "-".repeat(namelength)));
-        result.push_str(&format!(" | Summe:                  {} | {:>3},{:02} € |\n", " ".repeat(namelength), total / 100, total % 100));
-        result.push_str(&format!(" +-------------------------{}-+----------+\n", "-".repeat(namelength)));
+        result.push_str(&format!(" +------------+----------+-{}-+----------+\n", "-".repeat(maxnamelength)));
+        result.push_str(&format!(" | Summe:                  {} | {:>3},{:02} € |\n", " ".repeat(maxnamelength), total / 100, total % 100));
+        result.push_str(&format!(" +-------------------------{}-+----------+\n", "-".repeat(maxnamelength)));
 
 		result
 	}

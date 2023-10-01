@@ -40,6 +40,7 @@ crossterm = { version = "0.26" }
 async-recursion = { version = "1.0" }
 textwrap = { version = "0.16" }
 barcoders = { version = "1.0", features = ["svg"] }
+unicode-segmentation = { version = "1.10.1" }
 
 [package.metadata.deb]
 maintainer = "Sebastian Reichel <sre@mainframe.io>"
