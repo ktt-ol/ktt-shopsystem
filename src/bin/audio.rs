@@ -14,8 +14,9 @@
  */
 
 use std::{error::Error, future::pending};
-use zbus::{Connection, ConnectionBuilder, SignalContext, dbus_interface, dbus_proxy};
+use zbus::{ConnectionBuilder, SignalContext, dbus_interface};
 use rand::Rng;
+use configparser::ini::Ini;
 use gstreamer::prelude::*;
 
 fn get_files(dir: &str) -> std::io::Result<Vec<String>> {
@@ -80,26 +81,13 @@ impl AudioPlayer {
     async fn end_of_stream(ctxt: &SignalContext<'_>) -> zbus::Result<()>;
 }
 
-#[dbus_proxy(
-    interface = "io.mainframe.shopsystem.Config",
-    default_service = "io.mainframe.shopsystem.Config",
-    default_path = "/io/mainframe/shopsystem/config"
-)]
-trait ShopConfig {
-    async fn get_string(&self, section: &str, cfg: &str) -> zbus::Result<String>;
-}
-
-async fn cfg_get_str(section: &str, cfg: &str) -> zbus::Result<String> {
-    let connection = Connection::system().await?;
-    let proxy = ShopConfigProxy::new(&connection).await?;
-    proxy.get_string(section, cfg).await
-}
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     gstreamer::init()?;
+    let mut cfg = Ini::new();
+    cfg.load("/etc/shopsystem/config.ini").expect("failed to load config");
 
-    let mut path = cfg_get_str("GENERAL", "datapath").await?;
+    let mut path = cfg.get("GENERAL", "datapath").unwrap_or("/usr/share/shopsystem/".to_string());
     path += "/sounds";
 
     let player = gstreamer::ElementFactory::make("playbin").name("player").build()?;

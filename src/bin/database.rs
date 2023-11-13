@@ -13,12 +13,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 use std::{error::Error, future::pending};
-use zbus::{Connection, ConnectionBuilder, DBusError, dbus_interface, dbus_proxy};
+use zbus::{ConnectionBuilder, DBusError, dbus_interface};
 use std::collections::HashMap;
 use r2d2_sqlite::SqliteConnectionManager;
 use serde::{Serialize, Deserialize};
 use sha2::{Sha256, Digest};
 use hex::ToHex;
+use configparser::ini::Ini;
 
 struct Database {
     pool: r2d2::Pool<SqliteConnectionManager>,
@@ -1003,24 +1004,12 @@ impl Database {
 
 }
 
-#[dbus_proxy(
-    interface = "io.mainframe.shopsystem.Config",
-    default_service = "io.mainframe.shopsystem.Config",
-    default_path = "/io/mainframe/shopsystem/config"
-)]
-trait ShopConfig {
-    async fn get_string(&self, section: &str, cfg: &str) -> zbus::Result<String>;
-}
-
-async fn cfg_get_str(section: &str, cfg: &str) -> zbus::Result<String> {
-    let connection = Connection::system().await?;
-    let proxy = ShopConfigProxy::new(&connection).await?;
-    proxy.get_string(section, cfg).await
-}
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let dbfile = cfg_get_str("DATABASE", "file").await?;
+    let mut cfg = Ini::new();
+    cfg.load("/etc/shopsystem/config.ini").expect("failed to load config");
+    let dbfile = cfg.get("DATABASE", "file").expect("config does not specify DATABASE file");
+
     let manager = SqliteConnectionManager::file(dbfile);
     let pool = r2d2::Pool::new(manager)?;
 

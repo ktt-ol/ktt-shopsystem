@@ -58,7 +58,6 @@ maintainer-scripts = "debian/"
 assets = [
     ["target/release/audio", "usr/bin/ktt-shopsystem-audio", "755"],
     ["target/release/backup", "usr/bin/ktt-shopsystem-backup", "755"],
-    ["target/release/config", "usr/bin/ktt-shopsystem-config", "755"],
     ["target/release/database", "usr/bin/ktt-shopsystem-database", "755"],
     ["target/release/frontend", "usr/bin/ktt-shopsystem-frontend", "755"],
     ["target/release/invoice", "usr/bin/ktt-shopsystem-invoice", "755"],

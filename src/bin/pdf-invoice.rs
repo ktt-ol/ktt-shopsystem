@@ -14,10 +14,11 @@
  */
 
 use std::{error::Error, future::pending};
-use zbus::{Connection, ConnectionBuilder, DBusError, dbus_interface, dbus_proxy, zvariant};
+use zbus::{ConnectionBuilder, DBusError, dbus_interface, zvariant};
 use serde::{Serialize, Deserialize};
 use chrono::prelude::*;
 use chrono::Datelike;
+use configparser::ini::Ini;
 
 #[derive(DBusError, Debug)]
 enum PDFError {
@@ -775,34 +776,28 @@ impl PDFInvoice {
     }
 }
 
-#[dbus_proxy(
-    interface = "io.mainframe.shopsystem.Config",
-    default_service = "io.mainframe.shopsystem.Config",
-    default_path = "/io/mainframe/shopsystem/config"
-)]
-trait ShopConfig {
-    async fn get_string(&self, section: &str, cfg: &str) -> zbus::Result<String>;
-}
-
-async fn cfg_get_str(section: &str, cfg: &str) -> zbus::Result<String> {
-    let connection = Connection::system().await?;
-    let proxy = ShopConfigProxy::new(&connection).await?;
-    proxy.get_string(section, cfg).await
-}
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let datapath = cfg_get_str("GENERAL", "datapath").await?;
+    let mut cfg = Ini::new();
+    cfg.load("/etc/shopsystem/config.ini").expect("failed to load config");
+    let datapath = cfg.get("GENERAL", "datapath").unwrap_or("/usr/share/shopsystem/".to_string());
     let datapath = format!("{}/invoice", datapath);
+
+    let longname = cfg.get("GENERAL", "longname").expect("config does not specify GENERAL longname");
+    let vat = cfg.get("INVOICE", "vat").expect("config does not specify INVOICE vat");
+    let addressrow = cfg.get("INVOICE", "addressrow").expect("config does not specify INVOICE addressrow");
+    let footer1 = cfg.get("INVOICE", "footer1").expect("config does not specify INVOICE footer1").replace("\\n", "\n");
+    let footer2 = cfg.get("INVOICE", "footer2").expect("config does not specify INVOICE footer2").replace("\\n", "\n");
+    let footer3 = cfg.get("INVOICE", "footer3").expect("config does not specify INVOICE footer3").replace("\\n", "\n");
 
     let renderer = PDFInvoiceRenderer {
         datapath: datapath,
-        longname: cfg_get_str("GENERAL", "longname").await?,
-        addressrow: cfg_get_str("INVOICE", "addressrow").await?,
-        footer1: cfg_get_str("INVOICE", "footer1").await?,
-        footer2: cfg_get_str("INVOICE", "footer2").await?,
-        footer3: cfg_get_str("INVOICE", "footer3").await?,
-        vat: cfg_get_str("INVOICE", "vat").await?,
+        longname: longname,
+        addressrow: addressrow,
+        footer1: footer1,
+        footer2: footer2,
+        footer3: footer3,
+        vat: vat,
         previous_tm: None,
         invoice_id: String::new(),
         invoice_date: 0,

@@ -14,11 +14,12 @@
  */
 
 use std::{error::Error, future::pending};
-use zbus::{Connection, ConnectionBuilder, dbus_interface, DBusError, dbus_proxy};
+use zbus::{Connection, ConnectionBuilder, dbus_interface, DBusError};
 use serde::{Serialize, Deserialize};
 use lettre::transport::smtp::authentication::Credentials;
 use std::collections::HashSet;
 use lettre::AsyncTransport;
+use configparser::ini::Ini;
 
 #[derive(Debug, DBusError)]
 enum MailerError {
@@ -388,47 +389,21 @@ impl Mailer {
 
 }
 
-#[dbus_proxy(
-    interface = "io.mainframe.shopsystem.Config",
-    default_service = "io.mainframe.shopsystem.Config",
-    default_path = "/io/mainframe/shopsystem/config"
-)]
-trait ShopConfig {
-    async fn get_string(&self, section: &str, cfg: &str) -> zbus::Result<String>;
-    async fn get_integer(&self, section: &str, cfg: &str) -> zbus::Result<i32>;
-    async fn get_boolean(&self, section: &str, cfg: &str) -> zbus::Result<bool>;
-}
-
-async fn cfg_get_str(section: &str, cfg: &str) -> zbus::Result<String> {
-    let connection = Connection::system().await?;
-    let proxy = ShopConfigProxy::new(&connection).await?;
-    proxy.get_string(section, cfg).await
-}
-
-async fn cfg_get_int(section: &str, cfg: &str) -> zbus::Result<i32> {
-    let connection = Connection::system().await?;
-    let proxy = ShopConfigProxy::new(&connection).await?;
-    proxy.get_integer(section, cfg).await
-}
-
-async fn cfg_get_bool(section: &str, cfg: &str) -> zbus::Result<bool> {
-    let connection = Connection::system().await?;
-    let proxy = ShopConfigProxy::new(&connection).await?;
-    proxy.get_boolean(section, cfg).await
-}
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let username = cfg_get_str("MAIL", "username").await.unwrap_or(String::new());
-    let password = cfg_get_str("MAIL", "password").await.unwrap_or(String::new());
+    let mut cfg = Ini::new();
+    cfg.load("/etc/shopsystem/config.ini").expect("failed to load config");
+    let username = cfg.get("MAIL", "username").unwrap_or(String::new());
+    let password = cfg.get("MAIL", "password").unwrap_or(String::new());
+    let servername = cfg.get("MAIL", "server").expect("config is missing MAIL server");
+    let serverport = cfg.getint("MAIL", "port")?.unwrap_or(25);
+    let starttls = cfg.getbool("MAIL", "starttls")?.unwrap_or(true);
     let credentials = Credentials::new(username, password);
-    let servername = cfg_get_str("MAIL", "server").await?;
-    let serverport = cfg_get_int("MAIL", "port").await?;
     let mailer = Mailer {
         server: servername,
         port: serverport as u16,
         credentials: credentials,
-        starttls: cfg_get_bool("MAIL", "starttls").await?,
+        starttls: starttls,
         mailcounter: 0,
         mails: HashSet::new(),
         mailconnection: Connection::system().await?,

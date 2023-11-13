@@ -14,21 +14,6 @@
  */
 
 #[zbus::dbus_proxy(
-    interface = "io.mainframe.shopsystem.Config",
-    default_service = "io.mainframe.shopsystem.Config",
-    default_path = "/io/mainframe/shopsystem/config"
-)]
-trait ShopConfig {
-    async fn get_string(&self, section: &str, cfg: &str) -> zbus::Result<String>;
-}
-
-async fn cfg_get_str(section: &str, cfg: &str) -> zbus::Result<String> {
-    let connection = zbus::Connection::system().await?;
-    let proxy = ShopConfigProxy::new(&connection).await?;
-    proxy.get_string(section, cfg).await
-}
-
-#[zbus::dbus_proxy(
     interface = "io.mainframe.shopsystem.Mailer",
     default_service = "io.mainframe.shopsystem.Mailer",
     default_path = "/io/mainframe/shopsystem/mailer"
@@ -75,6 +60,10 @@ trait ShopMail {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cfg = configparser::ini::Ini::new();
+    cfg.load("/etc/shopsystem/config.ini").expect("failed to load config");
+    let dbfile = cfg.get("DATABASE", "file").expect("config does not specify DATABASE file");
+
     let dbus_connection = zbus::Connection::system().await?;
     let mailer = ShopMailerProxy::new(&dbus_connection).await?;
 
@@ -82,7 +71,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mail = ShopMailProxy::builder(&dbus_connection).path(mailpath.clone())?.build().await?;
 
     let now = chrono::Local::now().format("%Y-%m-%d %H:%M").to_string();
-    let dbfile = cfg_get_str("DATABASE", "file").await?;
     let dbdata = std::fs::read(dbfile)?;
 
     mail.set_from(MailContact {name: "KtT Shopsystem".to_string(), email: "shop@kreativitaet-trifft-technik.de".to_string()}).await?;

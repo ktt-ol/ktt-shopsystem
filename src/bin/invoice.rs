@@ -18,6 +18,7 @@ use zbus::{Connection, dbus_proxy, zvariant::Type};
 use serde::{Serialize, Deserialize};
 use chrono::{Datelike, offset::TimeZone, prelude::*};
 use unicode_segmentation::UnicodeSegmentation;
+use configparser::ini::Ini;
 
 static DAY_IN_SECONDS: i64 = 60*60*24;
 
@@ -106,21 +107,6 @@ struct Cli {
     /// UserID
     #[arg(short, long)]
     user: Option<i32>,
-}
-
-#[dbus_proxy(
-    interface = "io.mainframe.shopsystem.Config",
-    default_service = "io.mainframe.shopsystem.Config",
-    default_path = "/io/mainframe/shopsystem/config"
-)]
-trait ShopConfig {
-    async fn get_string(&self, section: &str, cfg: &str) -> zbus::Result<String>;
-}
-
-async fn cfg_get_str(section: &str, cfg: &str) -> zbus::Result<String> {
-    let connection = Connection::system().await?;
-    let proxy = ShopConfigProxy::new(&connection).await?;
-    proxy.get_string(section, cfg).await
 }
 
 #[derive(Type, Clone, Deserialize, Serialize)]
@@ -612,15 +598,16 @@ impl Invoicer {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::parse();
-
-    let datapath = cfg_get_str("GENERAL", "datapath").await?;
+    let mut cfg = Ini::new();
+    cfg.load("/etc/shopsystem/config.ini").expect("failed to load config");
+    let datapath = cfg.get("GENERAL", "datapath").unwrap_or("/usr/share/shopsystem/".to_string());
     let datapath = format!("{}/invoice", datapath);
 
-    let mailfromaddress = cfg_get_str("MAIL", "mailfromaddress").await?;
-    let treasurermailaddress = cfg_get_str("MAIL", "treasurermailaddress").await?;
-    let shortname = cfg_get_str("GENERAL", "shortname").await?;
-    let spacename = cfg_get_str("GENERAL", "spacename").await?;
-    let jverein_membership_number = cfg_get_str("JVEREIN", "membership_number").await?;
+    let mailfromaddress = cfg.get("MAIL", "mailfromaddress").expect("config does not specify MAIL mailfromaddress");
+    let treasurermailaddress = cfg.get("MAIL", "treasurermailaddress").expect("config does not specify MAIL treasurermailaddress");
+    let shortname = cfg.get("GENERAL", "shortname").expect("config does not specify GENERAL shortname");
+    let spacename = cfg.get("GENERAL", "spacename").expect("config does not specify GENERAL spacename");
+    let jverein_membership_number = cfg.get("JVEREIN", "membership_number").expect("config does not specify JVEREIN membership_number");
 
     let invoicer = Invoicer {
         datadir: datapath,

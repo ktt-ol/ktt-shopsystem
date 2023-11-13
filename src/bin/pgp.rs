@@ -41,21 +41,6 @@ impl From<compress_tools::Error> for PGPError {
     }
 }
 
-#[zbus::dbus_proxy(
-    interface = "io.mainframe.shopsystem.Config",
-    default_service = "io.mainframe.shopsystem.Config",
-    default_path = "/io/mainframe/shopsystem/config"
-)]
-trait ShopConfig {
-    async fn get_string(&self, section: &str, cfg: &str) -> zbus::Result<String>;
-}
-
-async fn cfg_get_str(section: &str, cfg: &str) -> zbus::Result<String> {
-    let connection = zbus::Connection::system().await?;
-    let proxy = ShopConfigProxy::new(&connection).await?;
-    proxy.get_string(section, cfg).await
-}
-
 struct PGP {
     keyring: String,
 }
@@ -156,8 +141,11 @@ impl PGP {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cfg = configparser::ini::Ini::new();
+    cfg.load("/etc/shopsystem/config.ini").expect("failed to load config");
+    let keyring = cfg.get("PGP", "keyring").expect("config does not specify PGP keyring");
+
     gpgme::init();
-    let keyring = cfg_get_str("PGP", "keyring").await?;
     let pgp = PGP { keyring: keyring };
 
     let _connection = zbus::ConnectionBuilder::system()?
