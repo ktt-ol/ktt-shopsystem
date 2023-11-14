@@ -269,12 +269,12 @@ impl Invoicer {
         let mailer = ShopMailerProxy::new(&dbus_connection).await?;
 
 		if !temporary {
-            let ts = chrono::DateTime::<Utc>::from_utc(chrono::NaiveDateTime::from_timestamp_opt(timestamp, 0).unwrap(), Utc);
+            let ts: chrono::DateTime<Utc> = chrono::DateTime::<Utc>::from_timestamp(timestamp, 0).expect("invalid timestamp");
             let ts: chrono::DateTime<Local> = chrono::DateTime::from(ts);
             let ts = ts - chrono::Months::new(1);
             prevtimestamp = ts.timestamp();
 
-            let ts = chrono::DateTime::<Utc>::from_utc(chrono::NaiveDateTime::from_timestamp_opt(timestamp, 0).unwrap(), Utc);
+            let ts: chrono::DateTime<Utc> = chrono::DateTime::<Utc>::from_timestamp(timestamp, 0).expect("invalid timestamp");
             let ts: chrono::DateTime<Local> = chrono::DateTime::from(ts);
             let ts = ts + chrono::Days::new(10);
             due_date_string = ts.format("%d.%m.%Y").to_string();
@@ -284,9 +284,9 @@ impl Invoicer {
 		let tst = Self::get_timespan(false, prevtimestamp);
 		let mut number = 0;
 
-        let start = chrono::DateTime::<Utc>::from_utc(chrono::NaiveDateTime::from_timestamp_opt(ts.from, 0).unwrap(), Utc);
+        let start: chrono::DateTime<Utc> = chrono::DateTime::<Utc>::from_timestamp(ts.from, 0).expect("invalid timestamp");
         let start: chrono::DateTime<Local> = chrono::DateTime::from(start);
-        let stop = chrono::DateTime::<Utc>::from_utc(chrono::NaiveDateTime::from_timestamp_opt(ts.to, 0).unwrap(), Utc);
+        let stop: chrono::DateTime<Utc> = chrono::DateTime::<Utc>::from_timestamp(ts.to, 0).expect("invalid timestamp");
         let stop: chrono::DateTime<Local> = chrono::DateTime::from(stop);
 		let startstring = start.format("%d.%m.%Y %H:%M:%S").to_string();
 		let stopstring  = stop.format("%d.%m.%Y %H:%M:%S").to_string();
@@ -375,7 +375,7 @@ impl Invoicer {
         let prevtimestamp = if temporary {
             timestamp - DAY_IN_SECONDS
         } else {
-            let ts = chrono::DateTime::<Utc>::from_utc(chrono::NaiveDateTime::from_timestamp_opt(timestamp, 0).unwrap(), Utc);
+            let ts: chrono::DateTime<Utc> = chrono::DateTime::<Utc>::from_timestamp(timestamp, 0).expect("invalid timestamp");
             let ts: chrono::DateTime<Local> = chrono::DateTime::from(ts);
             let ts = ts - chrono::Months::new(1);
             ts.timestamp()
@@ -435,7 +435,7 @@ impl Invoicer {
 	}
 
 	fn get_timespan(temporary: bool, timestamp: i64) -> Timespan {
-        let time = chrono::DateTime::<Utc>::from_utc(chrono::NaiveDateTime::from_timestamp_opt(timestamp, 0).unwrap(), Utc);
+        let time: chrono::DateTime<Utc> = chrono::DateTime::<Utc>::from_timestamp(timestamp, 0).expect("invalid timestamp");
         let time: chrono::DateTime<Local> = chrono::DateTime::from(time);
 
         if temporary {
@@ -536,7 +536,7 @@ impl Invoicer {
 		// generate table data
 		let mut lastdate = String::new();
 		for entry in entries {
-            let dt = chrono::DateTime::<Utc>::from_utc(chrono::NaiveDateTime::from_timestamp_opt(entry.timestamp, 0).unwrap(), Utc);
+            let dt: chrono::DateTime<Utc> = chrono::DateTime::<Utc>::from_timestamp(entry.timestamp, 0).expect("invalid timestamp");
             let dt: chrono::DateTime<Local> = chrono::DateTime::from(dt);
             let newdate = dt.format("%Y-%m-%d").to_string();
             let time = dt.format("%H:%M:%S").to_string();
@@ -568,7 +568,7 @@ impl Invoicer {
         result.push_str("\t</tr>\n");
 
         for entry in entries {
-            let dt = chrono::DateTime::<Utc>::from_utc(chrono::NaiveDateTime::from_timestamp_opt(entry.timestamp, 0).unwrap(), Utc);
+            let dt: chrono::DateTime<Utc> = chrono::DateTime::<Utc>::from_timestamp(entry.timestamp, 0).expect("invalid timestamp");
             let dt: chrono::DateTime<Local> = chrono::DateTime::from(dt);
 
             let newdate = dt.format("%Y-%m-%d").to_string();

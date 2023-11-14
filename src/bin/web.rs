@@ -859,7 +859,7 @@ async fn login(logindata: Form<UserLoginData<'_>>, cookies: &CookieJar<'_>) -> R
 
 #[get("/logout")]
 async fn logout(cookies: &CookieJar<'_>) -> Template {
-        cookies.remove(Cookie::named("sessionid"));
+        cookies.remove(Cookie::from("sessionid"));
         Template::render("logout", context! { page: "logout"} )
 }
 
@@ -1008,7 +1008,7 @@ async fn product_inventory_apply_helper(cookies: &CookieJar<'_>, data: Json<Inve
 #[post("/products/inventory/apply", format = "application/json", data = "<data>")]
 async fn product_inventory_apply(cookies: &CookieJar<'_>, data: Json<InventoryData>) -> Result<Json<()>, Forbidden<String>> {
     match product_inventory_apply_helper(cookies, data).await {
-        Err(error) => Err(Forbidden(Some(error.to_string()))),
+        Err(error) => Err(Forbidden(error.to_string())),
         Ok(_) => Ok(Json(())),
     }
 }
@@ -1057,16 +1057,16 @@ async fn product_details(cookies: &CookieJar<'_>, ean: u64) -> Result<Template, 
 #[get("/products/<ean>/deprecate/<deprecated>")]
 async fn web_product_deprecate(cookies: &CookieJar<'_>, ean: u64, deprecated: bool) -> Result<Json<bool>, Forbidden<String>> {
     let session = match get_session(cookies).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(session) => session,
     };
 
     if !session.superuser && !session.auth_products {
-        return Err(Forbidden(Some("Missing Permission".to_string())));
+        return Err(Forbidden("Missing Permission".to_string()));
     }
 
     match product_deprecate(ean, deprecated).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(_) => {},
     };
 
@@ -1076,18 +1076,18 @@ async fn web_product_deprecate(cookies: &CookieJar<'_>, ean: u64, deprecated: bo
 #[post("/products/<ean>/add-prices", format = "application/json", data = "<priceinfo>")]
 async fn web_product_add_prices(cookies: &CookieJar<'_>, ean: u64, priceinfo: Json<PriceInfo>) -> Result<Json<PriceInfo>, Forbidden<String>> {
     let session = match get_session(cookies).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(session) => session,
     };
 
     if !session.superuser && !session.auth_products {
-        return Err(Forbidden(Some("Missing Permission".to_string())));
+        return Err(Forbidden("Missing Permission".to_string()));
     }
 
     let now = chrono::offset::Local::now().timestamp();
 
     match new_price(ean, now, priceinfo.memberprice, priceinfo.guestprice).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(_) => {},
     };
 
@@ -1101,21 +1101,21 @@ async fn web_product_add_prices(cookies: &CookieJar<'_>, ean: u64, priceinfo: Js
 #[post("/products/<ean>/restock", format = "application/json", data = "<data>")]
 async fn web_product_restock(cookies: &CookieJar<'_>, ean: u64, data: Json<RestockEntry>) -> Result<Json<RestockEntryNamedSupplier>, Forbidden<String>> {
     let session = match get_session(cookies).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(session) => session,
     };
 
     if !session.superuser && !session.auth_products {
-        return Err(Forbidden(Some("Missing Permission".to_string())));
+        return Err(Forbidden("Missing Permission".to_string()));
     }
 
     match restock(session.uid, ean, data.amount, data.price, data.supplier, data.best_before_date).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(_) => {},
     };
 
     let supplierinfo = match get_supplier(data.supplier).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(info) => info,
     };
 
@@ -1132,41 +1132,41 @@ async fn web_product_restock(cookies: &CookieJar<'_>, ean: u64, data: Json<Resto
 #[get("/products/<ean>/add-alias/<alias>", format = "application/json")]
 async fn web_product_alias_add(cookies: &CookieJar<'_>, ean: u64, alias: u64) -> Result<Json<u64>, Forbidden<String>> {
     let session = match get_session(cookies).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(session) => session,
     };
 
     if !session.superuser && !session.auth_products {
-        return Err(Forbidden(Some("Missing Permission".to_string())));
+        return Err(Forbidden("Missing Permission".to_string()));
     }
 
     /* verify the product exists */
     match get_product_name(ean).await {
-        Err(_) => { return Err(Forbidden(Some(String::from("product EAN does not exist")))); },
+        Err(_) => { return Err(Forbidden(String::from("product EAN does not exist"))); },
         Ok(_) => {},
     };
 
     if !check_valid_gtin(alias, 8) && !check_valid_gtin(alias, 13) {
-        return Err(Forbidden(Some(String::from("The supplied alias is neither a valid EAN-8 nor EAN-13."))));
+        return Err(Forbidden(String::from("The supplied alias is neither a valid EAN-8 nor EAN-13.")));
     }
 
     /* verify the alias EAN does not yet exists */
     match ean_alias_get(alias).await {
-        Err(e) => { return Err(Forbidden(Some(String::from(e.to_string())))); },
+        Err(e) => { return Err(Forbidden(String::from(e.to_string()))); },
         Ok(val) => {
             if val != alias {
-                return Err(Forbidden(Some(String::from("The new EAN already exists as alias"))));
+                return Err(Forbidden(String::from("The new EAN already exists as alias")));
             }
         },
     };
 
     match get_product_name(alias).await {
         Err(_) => { },
-        Ok(_) => { return Err(Forbidden(Some(String::from("The new EAN already exists as product")))); },
+        Ok(_) => { return Err(Forbidden(String::from("The new EAN already exists as product"))); },
     };
 
     match ean_alias_add(alias, ean).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(_) => {},
     };
 
@@ -1204,16 +1204,16 @@ async fn web_suppliers_new(cookies: &CookieJar<'_>, info: Form<NewSupplier>) -> 
 #[get("/cashbox/status")]
 async fn cashbox_state(cookies: &CookieJar<'_>) -> Result<Json<i32>, Forbidden<String>> {
     let session = match get_session(cookies).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(session) => session,
     };
 
     if !session.superuser && !session.auth_cashbox {
-        return Err(Forbidden(Some("Missing Permission".to_string())));
+        return Err(Forbidden("Missing Permission".to_string()));
     }
 
     let cashbox_status = match cashbox_status().await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(status) => status,
     };
 
@@ -1223,16 +1223,16 @@ async fn cashbox_state(cookies: &CookieJar<'_>) -> Result<Json<i32>, Forbidden<S
 #[get("/cashbox/history")]
 async fn cashbox_history_json(cookies: &CookieJar<'_>) -> Result<Json<Vec<NamedCashboxDiff>>, Forbidden<String>> {
     let session = match get_session(cookies).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(session) => session,
     };
 
     if !session.superuser && !session.auth_cashbox {
-        return Err(Forbidden(Some("Missing Permission".to_string())));
+        return Err(Forbidden("Missing Permission".to_string()));
     }
 
     let cashbox_history = match cashbox_history_named().await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(history) => history,
     };
 
@@ -1255,12 +1255,12 @@ async fn cashbox(cookies: &CookieJar<'_>) -> Result<Template, WebShopError> {
 #[post("/cashbox/update", format = "application/json", data = "<data>")]
 async fn cashbox_update(cookies: &CookieJar<'_>, data: Json<CashboxUpdate>) -> Result<Json<()>, Forbidden<String>> {
     let session = match get_session(cookies).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(session) => session,
     };
 
     if !session.superuser && !session.auth_cashbox {
-        return Err(Forbidden(Some("Missing Permission".to_string())));
+        return Err(Forbidden("Missing Permission".to_string()));
     }
 
     let now = chrono::offset::Local::now().timestamp();
@@ -1274,7 +1274,7 @@ async fn cashbox_update(cookies: &CookieJar<'_>, data: Json<CashboxUpdate>) -> R
     }.await;
 
     match result {
-        Err(error) => Err(Forbidden(Some(error.to_string()))),
+        Err(error) => Err(Forbidden(error.to_string())),
         Ok(_) => Ok(Json(())),
     }
 }
@@ -1362,16 +1362,16 @@ async fn user_info(cookies: &CookieJar<'_>, id: i32) -> Result<Template, WebShop
 #[post("/users/set-sound-theme/<userid>", format = "application/json", data = "<theme>")]
 async fn user_sound_theme_set(cookies: &CookieJar<'_>, userid: i32, theme: String) -> Result<Json<bool>, Forbidden<String>> {
     let session = match get_session(cookies).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(session) => session,
     };
 
     if !session.superuser && !session.auth_users && userid != !session.uid {
-        return Err(Forbidden(Some("Missing Permission".to_string())));
+        return Err(Forbidden("Missing Permission".to_string()));
     }
 
     match set_user_theme(userid, &theme).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(_) => {},
     };
 
@@ -1381,12 +1381,12 @@ async fn user_sound_theme_set(cookies: &CookieJar<'_>, userid: i32, theme: Strin
 #[post("/users/set-password/<userid>", format = "application/json", data = "<password>")]
 async fn user_password_set(cookies: &CookieJar<'_>, userid: i32, password: String) -> Result<Json<bool>, Forbidden<String>> {
     let session = match get_session(cookies).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(session) => session,
     };
 
     if !session.superuser && !session.auth_users && userid != !session.uid {
-        return Err(Forbidden(Some("Missing Permission".to_string())));
+        return Err(Forbidden("Missing Permission".to_string()));
     }
 
     if password.is_empty() {
@@ -1394,7 +1394,7 @@ async fn user_password_set(cookies: &CookieJar<'_>, userid: i32, password: Strin
     }
 
     match set_user_password(userid, &password).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(_) => {},
     };
 
@@ -1404,16 +1404,16 @@ async fn user_password_set(cookies: &CookieJar<'_>, userid: i32, password: Strin
 #[get("/users/toggle-auth/<userid>/<permission>")]
 async fn user_toggle_auth(cookies: &CookieJar<'_>, userid: i32, permission: String) -> Result<Json<UserAuth>, Forbidden<String>> {
     let session = match get_session(cookies).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(session) => session,
     };
 
     if !session.superuser && !session.auth_users {
-        return Err(Forbidden(Some("Missing Permission".to_string())));
+        return Err(Forbidden("Missing Permission".to_string()));
     }
 
     let mut userauth = match get_user_auth(userid).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(userauth) => userauth,
     };
 
@@ -1421,11 +1421,11 @@ async fn user_toggle_auth(cookies: &CookieJar<'_>, userid: i32, permission: Stri
         "products" => { userauth.auth_products = !userauth.auth_products; },
         "cashbox" => { userauth.auth_cashbox = !userauth.auth_cashbox; },
         "users" => { userauth.auth_users = !userauth.auth_users; },
-        _ => { return Err(Forbidden(Some("Invalid Parameter".to_string()))); },
+        _ => { return Err(Forbidden("Invalid Parameter".to_string())); },
     };
 
     match set_user_auth(userauth).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(_) => {},
     };
 
@@ -1458,8 +1458,8 @@ async fn user_invoice_full(cookies: &CookieJar<'_>, user_id: i32, year: i32, mon
 
     let (first, last) = get_user_purchase_info(user_id).await?;
 
-    let first = chrono::DateTime::<Utc>::from_utc(chrono::NaiveDateTime::from_timestamp_opt(first, 0).unwrap(), Utc);
-    let last = chrono::DateTime::<Utc>::from_utc(chrono::NaiveDateTime::from_timestamp_opt(last, 0).unwrap(), Utc);
+    let first: chrono::DateTime<Utc> = chrono::DateTime::<Utc>::from_timestamp(first, 0).expect("invalid timestamp");
+    let last: chrono::DateTime<Utc> = chrono::DateTime::<Utc>::from_timestamp(last, 0).expect("invalid timestamp");
 
     /* make sure parameters are sensible */
     let year = if year < first.year() { first.year() } else { year };
@@ -1647,12 +1647,12 @@ async fn user_import_upload(cookies: &CookieJar<'_>, data: Data<'_>) -> Result<T
 #[post("/users/import/apply", format = "application/json", data = "<change>")]
 async fn user_import_apply(cookies: &CookieJar<'_>, change: Json<UserChange>) -> Result<Json<bool>, Forbidden<String>> {
     let session = match get_session(cookies).await {
-        Err(error) => { return Err(Forbidden(Some(error.to_string()))); },
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(session) => session,
     };
 
     if !session.superuser && !session.auth_users {
-        return Err(Forbidden(Some("Missing Permission".to_string())));
+        return Err(Forbidden("Missing Permission".to_string()));
     }
 
     let result = if change.new.is_some() {
@@ -1660,11 +1660,11 @@ async fn user_import_apply(cookies: &CookieJar<'_>, change: Json<UserChange>) ->
     } else if change.old.is_some() {
         user_disable(change.old.as_ref().unwrap().id, true).await
     } else {
-        return Err(Forbidden(Some("Invalid Change".to_string())));
+        return Err(Forbidden("Invalid Change".to_string()));
     };
 
     match result {
-        Err(error) => Err(Forbidden(Some(error.to_string()))),
+        Err(error) => Err(Forbidden(error.to_string())),
         Ok(_) => Ok(Json(true)),
     }
 }

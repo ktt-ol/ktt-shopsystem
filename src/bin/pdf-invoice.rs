@@ -327,7 +327,7 @@ impl PDFInvoiceRenderer {
 		layout.set_width(446 * pango::SCALE);
 
 		/* write invoice date */
-        let invdate = chrono::DateTime::<Utc>::from_utc(chrono::NaiveDateTime::from_timestamp_opt(self.invoice_date, 0).unwrap(), Utc);
+        let invdate: chrono::DateTime<Utc> = chrono::DateTime::<Utc>::from_timestamp(self.invoice_date, 0).expect("invalid timestamp");
         let invdate: chrono::DateTime<Local> = chrono::DateTime::from(invdate);
 		let date = invdate.format("%d.%m.%Y").to_string();
 		layout.set_text(&date);
@@ -498,7 +498,7 @@ impl PDFInvoiceRenderer {
 		let mut newy = y;
 
 		/* generate strings for InvoiceEntry */
-        let tm = chrono::DateTime::<Utc>::from_utc(chrono::NaiveDateTime::from_timestamp_opt(e.timestamp, 0).unwrap(), Utc);
+        let tm: chrono::DateTime<Utc> = chrono::DateTime::<Utc>::from_timestamp(e.timestamp, 0).expect("invalid timestamp");
         let tm: chrono::DateTime<Local> = chrono::DateTime::from(tm);
 		let mut date = tm.format("%Y-%m-%d").to_string();
 		let time = tm.format("%H:%M:%S").to_string();
