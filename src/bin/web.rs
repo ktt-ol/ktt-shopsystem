@@ -1514,7 +1514,7 @@ async fn user_invoice_full(cookies: &CookieJar<'_>, user_id: i32, year: i32, mon
     daylist.push(DropdownEntry { id: 0, name: "All days".to_string(), disabled: false, });
     if month == 0 {
         /* this case only supports 'All days' */
-    } else if start.year() < first.year() || (start.year() == first.year() && start.month() < first.month()) || start.year() > last.year() || (start.year() == last.year() && start.month() > first.month()) {
+    } else if start.year() < first.year() || (start.year() == first.year() && start.month() < first.month()) || start.year() > last.year() || (start.year() == last.year() && start.month() > last.month()) {
         for i in 1..get_days_from_month(year, month)+1 {
             daylist.push(DropdownEntry { id: i as usize, name: format!("{}", i), disabled: true });
         }
