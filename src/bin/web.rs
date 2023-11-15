@@ -381,6 +381,12 @@ pub struct InvoiceEntry {
 }
 
 #[derive(Type, Deserialize, Serialize)]
+pub struct UserSaleStatsEntry {
+    timedatecode: String,
+    count: i32,
+}
+
+#[derive(Type, Deserialize, Serialize)]
 pub struct CashboxDiff {
 	user: i32,
 	amount: i32,
@@ -449,6 +455,7 @@ trait ShopDB {
     #[dbus_proxy(name="set_userTheme")]
     async fn set_user_theme(&self, userid: i32, theme: &str) -> zbus::Result<()>;
     async fn get_invoice(&self, userid: i32, from: i64, to: i64) -> zbus::Result<Vec<InvoiceEntry>>;
+    async fn get_user_sale_stats(&self, user: i32, timecode: &str) -> zbus::Result<Vec<UserSaleStatsEntry>>;
 	async fn get_first_purchase(&self, user: i32) -> zbus::Result<i64>;
 	async fn get_last_purchase(&self, user: i32) -> zbus::Result<i64>;
     async fn cashbox_status(&self) -> zbus::Result<i32>;
@@ -789,6 +796,12 @@ async fn get_invoice(uid: i32, start: i64, stop: i64) -> zbus::Result<Vec<Invoic
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.get_invoice(uid, start, stop).await
+}
+
+async fn get_user_sale_stats(uid: i32, timecode: &str) -> zbus::Result<Vec<UserSaleStatsEntry>> {
+    let connection = Connection::system().await?;
+    let proxy = ShopDBProxy::new(&connection).await?;
+    proxy.get_user_sale_stats(uid, timecode).await
 }
 
 async fn check_user_password(userid: i32, password: &str) -> zbus::Result<bool> {
@@ -1567,7 +1580,12 @@ async fn user_stats(cookies: &CookieJar<'_>, id: i32) -> Result<Template, WebSho
         return Err(WebShopError::PermissionDenied());
     }
 
-    Ok(Template::render("error", context! { page: "error", errmsg: "statistics are not yet implemented", session: session }))
+    let sales_per_year = get_user_sale_stats(id, "%Y").await?;
+    let sales_per_week = get_user_sale_stats(id, "%W").await?;
+    let sales_per_weekday = get_user_sale_stats(id, "%w").await?;
+    let sales_per_hour = get_user_sale_stats(id, "%H").await?;
+
+    Ok(Template::render("users/stats", context! { page: "users/stats", session: session, sales_per_year: sales_per_year, sales_per_week: sales_per_week, sales_per_weekday: sales_per_weekday, sales_per_hour: sales_per_hour }))
 }
 
 #[get("/users/import")]

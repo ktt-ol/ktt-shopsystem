@@ -67,3 +67,20 @@ var ts2isotime = function(timestamp) {
 var isodate2ts = function(iso) {
 	return Math.floor(new Date(iso+"T23:59:59").getTime() / 1000);
 }
+
+var find_max_y = function(xytable) {
+	max = 0;
+	xytable.forEach(function(entry) {
+		if (entry.y > max)
+			max = entry.y;
+	});
+	return max;
+}
+
+var extract_x_from_xy = function(xytable) {
+	list = [];
+	xytable.forEach(function(entry) {
+		list.push(entry.x);
+	});
+	return list;
+}

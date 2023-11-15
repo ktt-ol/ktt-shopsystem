@@ -1,0 +1,179 @@
+{% extends "base" %}
+{% block title %}Invoice{% endblock title %}
+{% block content %}
+	<div class="container">
+		<script type="text/javascript" src="/static/js/d3.js"></script>
+		<h2>User Stats</h2>
+
+		<h3>Sales per year</h3>
+		<div id="sales_per_year"></div>
+
+		<h3>Sales per week</h3>
+		<div id="sales_per_week"></div>
+
+		<h3>Sales per weekday</h3>
+		<div id="sales_per_weekday"></div>
+
+		<h3>Sales per hour</h3>
+		<div id="sales_per_hour"></div>
+	</div>
+
+<script type="module">
+
+// Declare the chart dimensions and margins.
+const width = 640;
+const height = 400;
+const margin = {top: 20, right: 20, bottom: 30, left: 40}
+
+const sales_per_year_data = [{% for entry in sales_per_year %}
+	{
+		x: "{{ entry.timedatecode }}",
+		y: {{ entry.count }},
+	},
+{% endfor %}];
+
+const svg_year = d3.select("#sales_per_year")
+	.append("svg")
+		.attr("width", width + margin.left + margin.right)
+		.attr("height", height + margin.top + margin.bottom)
+	.append("g")
+		.attr("transform", `translate(${margin.left},${margin.top})`);
+
+const x_year = d3.scaleBand()
+    .domain(extract_x_from_xy(sales_per_year_data))
+    .range([0, width])
+    .padding(0.2);
+svg_year.append("g")
+    .attr("transform", `translate(0,${height})`)
+    .call(d3.axisBottom(x_year));
+
+const y_year = d3.scaleLinear()
+    .domain([0, find_max_y(sales_per_year_data)])
+    .range([height, 0]);
+svg_year.append("g")
+    .attr("transform", `translate(0,0)`)
+    .call(d3.axisLeft(y_year));
+
+svg_year.selectAll("sales_per_year_bar")
+	.data(sales_per_year_data).join("rect")
+		.attr("x", d => x_year(d.x))
+		.attr("y", d => y_year(d.y))
+		.attr("width", x_year.bandwidth())
+		.attr("height", d => height - y_year(d.y))
+		.attr("fill", "#69b3a2")
+
+const sales_per_week_data = [{% for entry in sales_per_week %}
+	{
+		x: "{{ entry.timedatecode }}",
+		y: {{ entry.count }},
+	},
+{% endfor %}];
+
+const svg_week = d3.select("#sales_per_week")
+	.append("svg")
+		.attr("width", width + margin.left + margin.right)
+		.attr("height", height + margin.top + margin.bottom)
+	.append("g")
+		.attr("transform", `translate(${margin.left},${margin.top})`);
+
+const x_week = d3.scaleLinear()
+    .domain([0,53])
+    .range([0, width]);
+svg_week.append("g")
+    .attr("transform", `translate(0,${height})`)
+    .call(d3.axisBottom(x_week));
+
+const y_week = d3.scaleLinear()
+    .domain([0, find_max_y(sales_per_week_data)])
+    .range([height, 0]);
+svg_week.append("g")
+    .attr("transform", `translate(0,0)`)
+    .call(d3.axisLeft(y_week));
+
+svg_week.selectAll("sales_per_week_bar")
+	.data(sales_per_week_data).join("rect")
+		.attr("x", d => x_week(d.x))
+		.attr("y", d => y_week(d.y))
+		.attr("width", width/53)
+		.attr("height", d => height - y_week(d.y))
+		.attr("fill", "#69b3a2")
+
+const sales_per_weekday_data = [{% for entry in sales_per_weekday %}
+	{
+		x: "{{ entry.timedatecode }}",
+		y: {{ entry.count }},
+	},
+{% endfor %}];
+
+const weekdays = [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" ];
+const weekdays_display = [ "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" ];
+
+const svg_weekday = d3.select("#sales_per_weekday")
+	.append("svg")
+		.attr("width", width + margin.left + margin.right)
+		.attr("height", height + margin.top + margin.bottom)
+	.append("g")
+		.attr("transform", `translate(${margin.left},${margin.top})`);
+
+const x_weekday = d3.scaleBand()
+    .range([ 0, width ])
+    .domain(weekdays_display)
+    .padding(0.2);
+svg_weekday.append("g")
+    .attr("transform", `translate(0,${height})`)
+    .call(d3.axisBottom(x_weekday));
+
+const y_weekday = d3.scaleLinear()
+    .domain([0, find_max_y(sales_per_weekday_data)])
+    .range([height, 0]);
+svg_weekday.append("g")
+    .attr("transform", `translate(0,0)`)
+    .call(d3.axisLeft(y_weekday));
+
+svg_weekday.selectAll("sales_per_weekday_bar")
+	.data(sales_per_weekday_data).join("rect")
+		.attr("x", d => x_weekday(weekdays[d.x]))
+		.attr("y", d => y_weekday(d.y))
+		.attr("width", x_weekday.bandwidth())
+		.attr("height", d => height - y_weekday(d.y))
+		.attr("fill", "#69b3a2")
+
+const sales_per_hour_data = [{% for entry in sales_per_hour %}
+	{
+		x: "{{ entry.timedatecode }}",
+		y: {{ entry.count }},
+	},
+{% endfor %}];
+
+const svg_hour = d3.select("#sales_per_hour")
+	.append("svg")
+		.attr("width", width + margin.left + margin.right)
+		.attr("height", height + margin.top + margin.bottom)
+	.append("g")
+		.attr("transform", `translate(${margin.left},${margin.top})`);
+
+const x_hour = d3.scaleLinear()
+    .domain([0,24])
+    .range([0, width]);
+svg_hour.append("g")
+    .attr("transform", `translate(0,${height})`)
+    .call(d3.axisBottom(x_hour));
+
+const y_hour = d3.scaleLinear()
+    .domain([0, find_max_y(sales_per_hour_data)])
+    .range([height, 0]);
+svg_hour.append("g")
+    .attr("transform", `translate(0,0)`)
+    .call(d3.axisLeft(y_hour));
+
+svg_hour.selectAll("sales_per_hour_bar")
+	.data(sales_per_hour_data).join("rect")
+		.attr("x", d => x_hour(d.x))
+		.attr("y", d => y_hour(d.y))
+		.attr("width", width/24)
+		.attr("height", d => height - y_hour(d.y))
+		.attr("fill", "#69b3a2")
+
+</script>
+
+{% endblock content %}

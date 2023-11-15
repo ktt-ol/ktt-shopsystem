@@ -98,6 +98,12 @@ struct InvoiceEntry {
 }
 
 #[derive(Deserialize,Serialize, zbus::zvariant::Type)]
+struct UserSaleStatsEntry {
+    timedatecode: String,
+    count: i32,
+}
+
+#[derive(Deserialize,Serialize, zbus::zvariant::Type)]
 struct Category {
 	id: i32,
 	name: String,
@@ -746,6 +752,23 @@ impl Database {
                 }
             }
         }
+    }
+
+    fn get_user_sale_stats(&mut self, user: i32, timecode: &str) -> Result<Vec<UserSaleStatsEntry>, DatabaseError> {
+        let query = "select strftime(?, datetime(timestamp, 'unixepoch')), COUNT(*) from sales where user = ? group by strftime(?, datetime(timestamp, 'unixepoch'));";
+		let mut result = Vec::new();
+        let connection = self.pool.get()?;
+        let mut statement = connection.prepare(query)?;
+        let mut rows = statement.query((timecode, user, timecode))?;
+
+        while let Some(row) = rows.next()? {
+            result.push(UserSaleStatsEntry {
+                timedatecode: row.get(0)?,
+                count: row.get(1)?,
+            });
+        }
+
+		Ok(result)
     }
 
     fn get_member_ids(&mut self) -> Result<Vec<i32>, DatabaseError> {
