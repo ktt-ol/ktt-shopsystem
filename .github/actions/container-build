@@ -1,0 +1,36 @@
+#!/bin/sh
+
+ARCH=$1
+DEBIAN_RELEASE=testing
+
+case ${ARCH} in
+	i386)
+		DEBIAN_ARCH=i386
+		RUST_ARCH=i686-unknown-linux-gnu
+		;;
+	amd64)
+		DEBIAN_ARCH=amd64
+		RUST_ARCH=x86_64-unknown-linux-gnu
+		;;
+	arm32)
+		DEBIAN_ARCH=armhf
+		RUST_ARCH=armv7-unknown-linux-gnueabihf
+		;;
+	arm64)
+		DEBIAN_ARCH=arm64
+		RUST_ARCH=aarch64-unknown-linux-gnu
+		;;
+	*)
+		echo "unsupported architecture"
+		exit 1
+		;;
+esac
+
+docker build \
+	-t ktt-shop \
+	--build-arg="DEBIAN_RELEASE=${DEBIAN_RELEASE}" \
+	--build-arg="DEBIAN_ARCH=${DEBIAN_ARCH}" \
+	--build-arg="RUST_ARCH=${RUST_ARCH}" \
+	docker
+
+docker run --rm -v "$PWD":/mnt/ktt-shopsystem ktt-shop

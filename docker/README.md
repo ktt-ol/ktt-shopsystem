@@ -5,7 +5,12 @@ binaries for Debian stable.
 
 Create the docker image with:
 ```bash
-docker build -t ktt-shop .
+docker build \
+        -t ktt-shop \
+        --build-arg="DEBIAN_RELEASE=testing" \
+        --build-arg="DEBIAN_ARCH=i386" \
+        --build-arg="RUST_ARCH=i686-unknown-linux-gnu" \
+        docker
 ```
 
 # Build

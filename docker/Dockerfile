@@ -1,4 +1,7 @@
-FROM i386/debian:stable
+ARG DEBIAN_ARCH=i386
+ARG DEBIAN_RELEASE=testing
+FROM ${DEBIAN_ARCH}/debian:${DEBIAN_RELEASE}
+ARG RUST_ARCH=i686-unknown-linux-gnu
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -15,13 +18,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	sqlite3 \
 	dbus systemd udev tmux
 
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-host i686-unknown-linux-gnu -y
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-host ${RUST_ARCH} -y
 
 RUN . $HOME/.cargo/env ; cargo install cargo-deb
 
 RUN set -ex && \
     useradd shop && \
-    mkdir /var/run/dbus
+    mkdir -p /var/run/dbus
 
 ENV SBC_DIR /mnt/ktt-shopsystem
 WORKDIR $SBC_DIR

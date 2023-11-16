@@ -4,6 +4,7 @@
 
 dbus-daemon --system
 cargo build --release
+cargo test
 cargo deb
 
 if [[ $? != 0 ]]; then
