@@ -31,6 +31,7 @@ use chrono::prelude::*;
 use std::num::ParseIntError;
 use rocket::data::{Data, ToByteUnit};
 use rocket::response::Responder;
+use configparser::ini::Ini;
 
 enum WebShopError {
     IOError(std::io::Error),
@@ -1790,9 +1791,18 @@ fn togglebutton<S: BuildHasher>(args: &HashMap<String, rocket_dyn_templates::ter
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build()
+    let mut cfg = Ini::new();
+    cfg.load("/etc/shopsystem/config.ini").expect("failed to load config");
+    let path = cfg.get("GENERAL", "datapath").unwrap_or("/usr/share/shopsystem/".to_string());
+    let templatepath = format!("{}/{}", path, "templates/");
+    let staticpath = format!("{}/{}", path, "templates/static/");
+
+    let figment = rocket::Config::figment()
+        .merge(("template_dir", templatepath));
+
+    rocket::custom(figment)
         .register("/", catchers![not_found])
-        .mount("/static", rocket::fs::FileServer::from("templates/static/"))
+        .mount("/static", rocket::fs::FileServer::from(staticpath))
         .mount("/", routes![login, logout, index, products, product_new, product_details, product_details_json, web_product_deprecate, web_product_add_prices, web_product_restock, web_product_alias_add, product_bestbefore, product_inventory, product_inventory_apply, aliases, suppliers, web_suppliers_new, cashbox, cashbox_state, cashbox_history_json, cashbox_update, cashbox_details, users, user_info, user_sound_theme_set, user_password_set, user_toggle_auth, user_invoice, user_invoice_full, user_stats, user_import, user_import_upload, user_import_apply, user_import_pgp, user_import_pgp_upload])
         .attach(Template::custom(|engines| {
             engines.tera.register_filter("cent2euro", cent2euro);
