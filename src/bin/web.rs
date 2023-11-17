@@ -1374,7 +1374,7 @@ async fn user_info(cookies: &CookieJar<'_>, id: i32) -> Result<Template, WebShop
 }
 
 #[post("/users/set-sound-theme/<userid>", format = "application/json", data = "<theme>")]
-async fn user_sound_theme_set(cookies: &CookieJar<'_>, userid: i32, theme: String) -> Result<Json<bool>, Forbidden<String>> {
+async fn user_sound_theme_set(cookies: &CookieJar<'_>, userid: i32, theme: Json<String>) -> Result<Json<bool>, Forbidden<String>> {
     let session = match get_session(cookies).await {
         Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(session) => session,
@@ -1383,6 +1383,8 @@ async fn user_sound_theme_set(cookies: &CookieJar<'_>, userid: i32, theme: Strin
     if !session.superuser && !session.auth_users && userid != !session.uid {
         return Err(Forbidden("Missing Permission".to_string()));
     }
+
+    let theme = theme.into_inner();
 
     match set_user_theme(userid, &theme).await {
         Err(error) => { return Err(Forbidden(error.to_string())); },
@@ -1393,7 +1395,7 @@ async fn user_sound_theme_set(cookies: &CookieJar<'_>, userid: i32, theme: Strin
 }
 
 #[post("/users/set-password/<userid>", format = "application/json", data = "<password>")]
-async fn user_password_set(cookies: &CookieJar<'_>, userid: i32, password: String) -> Result<Json<bool>, Forbidden<String>> {
+async fn user_password_set(cookies: &CookieJar<'_>, userid: i32, password: Json<String>) -> Result<Json<bool>, Forbidden<String>> {
     let session = match get_session(cookies).await {
         Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(session) => session,
@@ -1402,6 +1404,8 @@ async fn user_password_set(cookies: &CookieJar<'_>, userid: i32, password: Strin
     if !session.superuser && !session.auth_users && userid != !session.uid {
         return Err(Forbidden("Missing Permission".to_string()));
     }
+
+    let password = password.into_inner();
 
     if password.is_empty() {
         return Ok(Json(false));
