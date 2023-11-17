@@ -10,9 +10,9 @@ description = "KtT Shopsystem"
 readme = "README.md"
 
 [dependencies]
-rocket = { version = "0.5.0-rc.4", features = ["json"] }
+rocket = { version = "0.5.0", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
-rocket_dyn_templates = { version = "0.1.0-rc.4", features = ["tera"] }
+rocket_dyn_templates = { version = "0.1.0", features = ["tera"] }
 serde = { version = "1.0" }
 serde_json = { version = "1.0" }
 zbus = { version = "3", default-features = false, features = ["tokio"] }
