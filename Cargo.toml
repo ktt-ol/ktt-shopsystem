@@ -67,7 +67,7 @@ assets = [
     ["target/release/web", "usr/bin/ktt-shopsystem-web", "755"],
     ["README.md", "usr/share/doc/ktt-shopsystem/README", "644"],
     ["debian/dbus-config/*", "usr/share/dbus-1/system.d/", "644"],
-    ["debian/dbus-services/*", "usr/share/dbus-1/services/", "644"],
+    ["debian/dbus-services/*", "usr/share/dbus-1/system-services/", "644"],
     ["data/config/*", "etc/shopsystem/", "644"],
     ["data/invoice/*", "usr/share/shopsystem/invoice/", "644"],
     ["data/sql/*", "usr/share/shopsystem/sql/", "644"],
