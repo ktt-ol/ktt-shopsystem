@@ -27,7 +27,7 @@
 						</td>
 					<tr><th scope="row">Name</th><td id="productname">{{ name }}</td>
 					<tr><th scope="row">Category</th><td id="productcategory">{{ category }}</td>
-					<tr><th scope="row">Amount</th><td id="productamount">{{ amount }}</td>
+					<tr><th scope="row">Amount</th><td id="productamount"><div class="row"><div class="col">{{ amount }}</div>{% if metadata.container_size > 0 %}<div class="col text-end">{{ (amount - (amount % metadata.container_size)) / metadata.container_size }} container(s) + {{ amount % metadata.container_size }} items</div>{% endif %}</div></td>
 					<tr><th scope="row">State</th><td>{{ togglebutton(clickable=session.auth_products, enabled=not deprecated, buttonid="deprecatedbutton", enabledStr="Active", disabledStr="Deprecated") | safe }}</td>
 				</table>
 
