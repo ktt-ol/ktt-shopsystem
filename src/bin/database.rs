@@ -200,6 +200,19 @@ struct CashboxDiff {
 	timestamp: i64,
 }
 
+#[derive(Deserialize,Serialize, zbus::zvariant::Type)]
+struct ProductMetadata {
+    product_size: u32,
+    product_size_is_weight: bool,
+    container_size: u32,
+    calories: u32,
+    carbohydrates: u32,
+    fats: u32,
+    proteins: u32,
+    deposit: u32,
+    container_deposit: u32,
+}
+
 fn get_unix_time() -> i64 {
     match std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH) {
         Ok(n) => n.as_secs().try_into().expect("Cannot convert timestamp from u64 to i64"),
@@ -286,6 +299,49 @@ impl Database {
             memberprice: self.get_product_price(1, ean)?,
             guestprice: self.get_product_price(0, ean)?,
         };
+        Ok(result)
+	}
+
+	fn product_metadata_set(&mut self, ean: u64, metadata: ProductMetadata) -> Result<(), DatabaseError> {
+        let ean = self.ean_alias_get(ean)?;
+        let connection = self.pool.get()?;
+        let query = "INSERT OR REPLACE INTO product_metadata ('product', 'product_size', 'product_size_is_weight', 'container_size', 'calories', 'carbohydrates', 'fats', 'proteins', 'deposit', 'container_deposit') VALUES (?,?,?,?,?,?,?,?,?,?)";
+        let mut statement = connection.prepare(query)?;
+        let _inserted_row_count = statement.execute((
+            ean,
+            metadata.product_size,
+            metadata.product_size_is_weight,
+            metadata.container_size,
+            metadata.calories,
+            metadata.carbohydrates,
+            metadata.fats,
+            metadata.proteins,
+            metadata.deposit,
+            metadata.container_deposit,
+        ))?;
+
+        Ok(())
+	}
+
+	fn product_metadata_get(&mut self, ean: u64) -> Result<ProductMetadata, DatabaseError> {
+        let query = "SELECT product_size, product_size_is_weight, container_size, calories, carbohydrates, fats, proteins, deposit, container_deposit FROM product_metadata WHERE product = ?";
+        let ean = self.ean_alias_get(ean)?;
+        let connection = self.pool.get()?;
+        let mut statement = connection.prepare(query)?;
+
+        let result = statement.query_row([ean], |r| {
+            Ok(ProductMetadata {
+                product_size: r.get(0)?,
+                product_size_is_weight: r.get(1)?,
+                container_size: r.get(2)?,
+                calories: r.get(3)?,
+                carbohydrates: r.get(4)?,
+                fats: r.get(5)?,
+                proteins: r.get(6)?,
+                deposit: r.get(7)?,
+                container_deposit: r.get(8)?,
+            })
+        })?;
         Ok(result)
 	}
 
