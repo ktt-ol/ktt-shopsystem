@@ -273,6 +273,35 @@ pub struct RestockEntryLegacy {
 }
 
 #[derive(Type, Deserialize, Serialize)]
+pub struct ProductMetadata {
+    product_size: u32,
+    product_size_is_weight: bool,
+    container_size: u32,
+    calories: u32,
+    carbohydrates: u32,
+    fats: u32,
+    proteins: u32,
+    deposit: u32,
+    container_deposit: u32,
+}
+
+impl Default for ProductMetadata {
+    fn default() -> Self {
+        Self {
+            product_size: 0,
+            product_size_is_weight: true,
+            container_size: 0,
+            calories: 0,
+            carbohydrates: 0,
+            fats: 0,
+            proteins: 0,
+            deposit: 0,
+            container_deposit: 0,
+        }
+    }
+}
+
+#[derive(Type, Deserialize, Serialize)]
 pub struct RestockEntry {
 	timestamp: i64,
 	amount: u32,
@@ -436,6 +465,8 @@ trait ShopDB {
     async fn get_product_category(&self, ean: u64) -> zbus::Result<String>;
     async fn get_product_deprecated(&self, ean: u64) -> zbus::Result<bool>;
     async fn product_deprecate(&self, ean: u64, deprecated: bool) -> zbus::Result<()>;
+    async fn product_metadata_get(&self, ean: u64) -> zbus::Result<ProductMetadata>;
+    async fn product_metadata_set(&self, ean: u64, metadata: ProductMetadata) -> zbus::Result<()>;
     async fn get_restocks(&self, ean: u64, descending: bool) -> zbus::Result<Vec<RestockEntryLegacy>>;
     async fn bestbeforelist(&self) -> zbus::Result<Vec<BestBeforeEntry>>;
     async fn get_supplier_list(&self) -> zbus::Result<Vec<Supplier>>;
@@ -591,6 +622,18 @@ async fn product_deprecate(ean: u64, deprecated: bool) -> zbus::Result<()> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.product_deprecate(ean, deprecated).await
+}
+
+async fn product_metadata_get(ean: u64) -> zbus::Result<ProductMetadata> {
+    let connection = Connection::system().await?;
+    let proxy = ShopDBProxy::new(&connection).await?;
+    proxy.product_metadata_get(ean).await
+}
+
+async fn product_metadata_set(ean: u64, metadata: ProductMetadata) -> zbus::Result<()> {
+    let connection = Connection::system().await?;
+    let proxy = ShopDBProxy::new(&connection).await?;
+    proxy.product_metadata_set(ean, metadata).await
 }
 
 async fn restock(user: i32, product: u64, amount: u32, price: u32, supplier: i32, best_before_date: i64) -> zbus::Result<()> {
@@ -1049,6 +1092,7 @@ async fn product_details(cookies: &CookieJar<'_>, ean: u64) -> Result<Template, 
     let deprecated = get_product_deprecated(ean).await?;
     let prices = get_prices(ean).await?;
     let legacyrestock = get_restocks(ean, false).await?;
+    let metadata = product_metadata_get(ean).await.ok().unwrap_or_default();
 
     let mut restock = Vec::new();
     for entry in legacyrestock {
@@ -1065,7 +1109,7 @@ async fn product_details(cookies: &CookieJar<'_>, ean: u64) -> Result<Template, 
 
     let suppliers = get_supplier_list().await?;
 
-    Ok(Template::render("products/details", context! { page: "products/details", session: session, ean: ean, aliases: aliases, name: name, category: category, amount: amount, deprecated: deprecated, prices: prices, restock: restock, suppliers: suppliers }))
+    Ok(Template::render("products/details", context! { page: "products/details", session: session, ean: ean, aliases: aliases, name: name, category: category, amount: amount, deprecated: deprecated, prices: prices, restock: restock, suppliers: suppliers, metadata: metadata }))
 }
 
 #[get("/products/<ean>/deprecate/<deprecated>")]
@@ -1186,6 +1230,28 @@ async fn web_product_alias_add(cookies: &CookieJar<'_>, ean: u64, alias: u64) ->
 
     Ok(Json(alias))
 }
+
+#[post("/products/<ean>/metadata-set", format = "application/json", data = "<metadata>")]
+async fn web_product_metadata_set(cookies: &CookieJar<'_>, ean: u64, metadata: Json<ProductMetadata>) -> Result<Json<()>, Forbidden<String>> {
+    let session = match get_session(cookies).await {
+        Err(error) => { return Err(Forbidden(error.to_string())); },
+        Ok(session) => session,
+    };
+
+    if !session.superuser && !session.auth_products {
+        return Err(Forbidden("Missing Permission".to_string()));
+    }
+
+    let metadata = metadata.into_inner();
+
+    match product_metadata_set(ean, metadata).await {
+        Err(error) => { return Err(Forbidden(error.to_string())); }, // TODO
+        Ok(_) => {},
+    };
+
+    Ok(Json(()))
+}
+
 
 #[get("/aliases")]
 async fn aliases(cookies: &CookieJar<'_>) -> Result<Template, WebShopError> {
@@ -1807,7 +1873,7 @@ fn rocket() -> _ {
     rocket::custom(figment)
         .register("/", catchers![not_found])
         .mount("/static", rocket::fs::FileServer::from(staticpath))
-        .mount("/", routes![login, logout, index, products, product_new, product_details, product_details_json, web_product_deprecate, web_product_add_prices, web_product_restock, web_product_alias_add, product_bestbefore, product_inventory, product_inventory_apply, aliases, suppliers, web_suppliers_new, cashbox, cashbox_state, cashbox_history_json, cashbox_update, cashbox_details, users, user_info, user_sound_theme_set, user_password_set, user_toggle_auth, user_invoice, user_invoice_full, user_stats, user_import, user_import_upload, user_import_apply, user_import_pgp, user_import_pgp_upload])
+        .mount("/", routes![login, logout, index, products, product_new, product_details, product_details_json, web_product_deprecate, web_product_add_prices, web_product_restock, web_product_alias_add, web_product_metadata_set, product_bestbefore, product_inventory, product_inventory_apply, aliases, suppliers, web_suppliers_new, cashbox, cashbox_state, cashbox_history_json, cashbox_update, cashbox_details, users, user_info, user_sound_theme_set, user_password_set, user_toggle_auth, user_invoice, user_invoice_full, user_stats, user_import, user_import_upload, user_import_apply, user_import_pgp, user_import_pgp_upload])
         .attach(Template::custom(|engines| {
             engines.tera.register_filter("cent2euro", cent2euro);
             engines.tera.register_filter("gendericon", gendericon);
