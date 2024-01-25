@@ -13,12 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-use tui::{
-    backend::{Backend, CrosstermBackend},
+use ratatui::{
+    backend::CrosstermBackend,
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     layout::{Layout, Constraint, Direction, Rect},
     style::{Color, Modifier, Style},
-    text::{Span, Spans},
+    text::{Span, Line},
     Terminal,
     Frame
 };
@@ -146,7 +146,7 @@ fn asciify(time: &str) -> [String; 3] {
     [line1, line2, line3]
 }
 
-fn clock<B: Backend>(f: &mut Frame<B>, draw_dots: bool, area: Rect) {
+fn clock(f: &mut Frame, draw_dots: bool, area: Rect) {
     let now = chrono::Local::now();
     let date = now.format("      %d.%m.%Y").to_string();
     let time = if draw_dots {
@@ -157,43 +157,43 @@ fn clock<B: Backend>(f: &mut Frame<B>, draw_dots: bool, area: Rect) {
     let time = asciify(&time);
 
     let text = vec![
-        Spans::from(Span::raw(date)),
-        Spans::from(Span::raw("")),
-        Spans::from(Span::styled(&time[0], Style::default().fg(Color::Red).add_modifier(Modifier::BOLD))),
-        Spans::from(Span::styled(&time[1], Style::default().fg(Color::Red).add_modifier(Modifier::BOLD))),
-        Spans::from(Span::styled(&time[2], Style::default().fg(Color::Red).add_modifier(Modifier::BOLD))),
+        Line::from(Span::raw(date)),
+        Line::from(Span::raw("")),
+        Line::from(Span::styled(&time[0], Style::default().fg(Color::Red).add_modifier(Modifier::BOLD))),
+        Line::from(Span::styled(&time[1], Style::default().fg(Color::Red).add_modifier(Modifier::BOLD))),
+        Line::from(Span::styled(&time[2], Style::default().fg(Color::Red).add_modifier(Modifier::BOLD))),
     ];
     let p = Paragraph::new(text).style(Style::default().fg(Color::White));
     f.render_widget(p, area);
 }
 
-fn logo<B: Backend>(f: &mut Frame<B>, area: Rect) {
+fn logo(f: &mut Frame, area: Rect) {
     let logo = std::fs::read_to_string("/etc/shopsystem/logo.txt").unwrap();
     let logo: Vec<&str> = logo.split("\n").collect();
     let mut text = Vec::new();
 
     for line in logo {
-        text.push(Spans::from(Span::styled(line, Style::default().fg(Color::Green))));
+        text.push(Line::from(Span::styled(line, Style::default().fg(Color::Green))));
     }
 
     let p = Paragraph::new(text).style(Style::default().fg(Color::White));
     f.render_widget(p, area);
 }
 
-fn log<B: Backend>(f: &mut Frame<B>, area: Rect, logdata: &Vec<LogEntry>) {
+fn log(f: &mut Frame, area: Rect, logdata: &Vec<LogEntry>) {
     let linewidth = (area.width as usize) - 2;
     let timestampwidth = "[00:00:00] ".len();
     let wraplen = linewidth - timestampwidth;
     let items: Vec<ListItem> = logdata.iter().map(|logentry| {
         let lines = if logentry.logtype == LogType::DateChange {
-            vec![Spans::from(Span::raw(format!("--- Date change {} ---", logentry.time.format("%d.%m.%Y"))))]
+            vec![Line::from(Span::raw(format!("--- Date change {} ---", logentry.time.format("%d.%m.%Y"))))]
         } else {
             let wrappedmsg = textwrap::wrap(&logentry.msg, wraplen);
             wrappedmsg.iter().enumerate().map(|(i,line)| {
                 if i == 0 {
-                    Spans::from(Span::raw(format!("[{}] {}", logentry.time.format("%H:%M:%S"), line)))
+                    Line::from(Span::raw(format!("[{}] {}", logentry.time.format("%H:%M:%S"), line)))
                 } else {
-                    Spans::from(Span::raw(format!("           {}", line)))
+                    Line::from(Span::raw(format!("           {}", line)))
                 }
             }).collect()
         };
@@ -220,7 +220,7 @@ fn log<B: Backend>(f: &mut Frame<B>, area: Rect, logdata: &Vec<LogEntry>) {
     f.render_stateful_widget(list, area, &mut state);
 }
 
-fn ui<B: Backend>(f: &mut Frame<B>, draw_dots: bool, logdata: &Vec<LogEntry>) {
+fn ui(f: &mut Frame, draw_dots: bool, logdata: &Vec<LogEntry>) {
     let vsplit = Layout::default()
         .direction(Direction::Vertical)
         .margin(0)
@@ -486,7 +486,7 @@ impl ShopCommand {
         } else if ean.is_some() {
             ShopCommand { instruction: ShopInstruction::EAN, userid: None, productid: ean, rfiddata: None }
         } else if line.len() == 10 {
-            ShopCommand { instruction: ShopInstruction::RFID, userid: None, productid: None, rfiddata: Some(line.clone().to_string()) }
+            ShopCommand { instruction: ShopInstruction::RFID, userid: None, productid: None, rfiddata: Some(line.to_string()) }
         } else {
             ShopCommand { instruction: ShopInstruction::Invalid, userid: None, productid: None, rfiddata: None }
         }

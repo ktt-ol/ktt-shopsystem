@@ -35,7 +35,7 @@ lettre = { version = "0.11", default-features = false, features = ["builder", "h
 clap = { version = "4", features = ["derive"] }
 gpgme = { version = "0.11" }
 compress-tools = { version = "0.14" }
-tui = { version = "0.19" }
+ratatui = { version = "0.25" }
 crossterm = { version = "0.27" }
 async-recursion = { version = "1.0" }
 textwrap = { version = "0.16" }
