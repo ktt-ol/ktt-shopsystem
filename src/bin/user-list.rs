@@ -131,7 +131,7 @@ fn render_centered_text(ctx: &cairo::Context, x: f64, y: f64, w: i32, msg: &str)
     ctx.set_source_rgb(0.0, 0.0, 0.0);
 
     /* get pango layout */
-    let layout = pangocairo::create_layout(&ctx);
+    let layout = pangocairo::functions::create_layout(&ctx);
 
     /* setup font */
     let mut font = pango::FontDescription::new();
@@ -153,8 +153,8 @@ fn render_centered_text(ctx: &cairo::Context, x: f64, y: f64, w: i32, msg: &str)
     layout.set_text(msg);
 
     /* render text */
-    pangocairo::update_layout(ctx, &layout);
-    pangocairo::show_layout(ctx, &layout);
+    pangocairo::functions::update_layout(ctx, &layout);
+    pangocairo::functions::show_layout(ctx, &layout);
 
     ctx.restore()?;
     Ok(())

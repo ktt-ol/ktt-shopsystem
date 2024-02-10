@@ -206,7 +206,7 @@ impl PDFInvoiceRenderer {
 		ctx.set_source_rgb(0.0, 0.0, 0.0);
 
 		/* get pango layout */
-		let layout = pangocairo::create_layout(ctx);
+		let layout = pangocairo::functions::create_layout(ctx);
 
 		/* setup font */
 		let mut font = pango::FontDescription::new();
@@ -228,8 +228,8 @@ impl PDFInvoiceRenderer {
 		layout.set_markup(&self.footer1);
 
 		/* render text */
-		pangocairo::update_layout(ctx, &layout);
-		pangocairo::show_layout(ctx, &layout);
+		pangocairo::functions::update_layout(ctx, &layout);
+		pangocairo::functions::show_layout(ctx, &layout);
 
 		ctx.restore()?;
         Ok(())
@@ -241,7 +241,7 @@ impl PDFInvoiceRenderer {
 		ctx.set_source_rgb(0.0, 0.0, 0.0);
 
 		/* get pango layout */
-		let layout = pangocairo::create_layout(ctx);
+		let layout = pangocairo::functions::create_layout(ctx);
 
 		/* setup font */
 		let mut font = pango::FontDescription::new();
@@ -263,8 +263,8 @@ impl PDFInvoiceRenderer {
 		layout.set_markup(&self.footer2);
 
 		/* render text */
-		pangocairo::update_layout(ctx, &layout);
-		pangocairo::show_layout(ctx, &layout);
+		pangocairo::functions::update_layout(ctx, &layout);
+		pangocairo::functions::show_layout(ctx, &layout);
 
 		ctx.restore()?;
         Ok(())
@@ -276,7 +276,7 @@ impl PDFInvoiceRenderer {
 		ctx.set_source_rgb(0.0, 0.0, 0.0);
 
 		/* get pango layout */
-		let layout = pangocairo::create_layout(ctx);
+		let layout = pangocairo::functions::create_layout(ctx);
 
 		/* setup font */
 		let mut font = pango::FontDescription::new();
@@ -298,8 +298,8 @@ impl PDFInvoiceRenderer {
 		layout.set_markup(&self.footer3);
 
 		/* render text */
-		pangocairo::update_layout(ctx, &layout);
-		pangocairo::show_layout(ctx, &layout);
+		pangocairo::functions::update_layout(ctx, &layout);
+		pangocairo::functions::show_layout(ctx, &layout);
 
 		ctx.restore()?;
         Ok(())
@@ -311,7 +311,7 @@ impl PDFInvoiceRenderer {
 		ctx.set_source_rgb(0.0, 0.0, 0.0);
 
 		/* get pango layout */
-		let layout = pangocairo::create_layout(ctx);
+		let layout = pangocairo::functions::create_layout(ctx);
 
 		/* setup font */
 		let mut font = pango::FontDescription::new();
@@ -333,8 +333,8 @@ impl PDFInvoiceRenderer {
 		layout.set_text(&date);
 
 		/* render text */
-		pangocairo::update_layout(ctx, &layout);
-		pangocairo::show_layout(ctx, &layout);
+		pangocairo::functions::update_layout(ctx, &layout);
+		pangocairo::functions::show_layout(ctx, &layout);
 
 		ctx.restore()?;
         Ok(())
@@ -382,7 +382,7 @@ impl PDFInvoiceRenderer {
 		ctx.set_source_rgb(0.0, 0.0, 0.0);
 
 		/* get pango layout */
-		let layout = pangocairo::create_layout(ctx);
+		let layout = pangocairo::functions::create_layout(ctx);
 
 		/* setup font */
 		let mut font = pango::FontDescription::new();
@@ -422,8 +422,8 @@ impl PDFInvoiceRenderer {
         layout.set_markup(&text);
 
 		/* render text */
-		pangocairo::update_layout(ctx, &layout);
-		pangocairo::show_layout(ctx, &layout);
+		pangocairo::functions::update_layout(ctx, &layout);
+		pangocairo::functions::show_layout(ctx, &layout);
 
 		ctx.restore()?;
         Ok(())
@@ -526,7 +526,7 @@ impl PDFInvoiceRenderer {
 		ctx.move_to(184.0, y);
 
 		/* get pango layout */
-		let layout = pangocairo::create_layout(ctx);
+		let layout = pangocairo::functions::create_layout(ctx);
 
 		/* setup font */
 		let mut font = pango::FontDescription::new();
@@ -557,8 +557,8 @@ impl PDFInvoiceRenderer {
         }
 
 		/* render article text */
-		pangocairo::update_layout(ctx, &layout);
-		pangocairo::show_layout(ctx, &layout);
+		pangocairo::functions::update_layout(ctx, &layout);
+		pangocairo::functions::show_layout(ctx, &layout);
 
 		/* render date, time (toy font api uses different y than pango) */
 		ctx.select_font_face("LMSans10", cairo::FontSlant::Normal, cairo::FontWeight::Normal);
@@ -570,13 +570,13 @@ impl PDFInvoiceRenderer {
 
 		/* render price */
 		ctx.move_to(484.0, y);
-		let pricelayout = pangocairo::create_layout(ctx);
+		let pricelayout = pangocairo::functions::create_layout(ctx);
 		pricelayout.set_font_description(Some(&font));
 		pricelayout.set_alignment(pango::Alignment::Right);
 		pricelayout.set_width(42 * pango::SCALE);
 		pricelayout.set_text(&price);
-		pangocairo::update_layout(ctx, &pricelayout);
-		pangocairo::show_layout(ctx, &pricelayout);
+		pangocairo::functions::update_layout(ctx, &pricelayout);
+		pangocairo::functions::show_layout(ctx, &pricelayout);
 
 		/* add borders */
 		ctx.set_line_width(0.8);
