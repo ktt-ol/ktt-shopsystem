@@ -14,7 +14,7 @@
  */
 
 use std::{error::Error, future::pending};
-use zbus::{ConnectionBuilder, DBusError, dbus_interface, zvariant};
+use zbus::{ConnectionBuilder, DBusError, interface, zvariant};
 use serde::{Serialize, Deserialize};
 use chrono::prelude::*;
 use chrono::Datelike;
@@ -22,7 +22,7 @@ use configparser::ini::Ini;
 
 #[derive(DBusError, Debug)]
 enum PDFError {
-    #[dbus_error(zbus_error)]
+    #[zbus(error)]
     ZBus(zbus::Error),
     SVGLoadingError(String),
     SVGRenderingError(String),
@@ -725,44 +725,44 @@ struct PDFInvoice {
     renderer: PDFInvoiceRenderer,
 }
 
-#[dbus_interface(name = "io.mainframe.shopsystem.InvoicePDF")]
+#[interface(name = "io.mainframe.shopsystem.InvoicePDF")]
 impl PDFInvoice {
-    #[dbus_interface(property)]
+    #[zbus(property)]
     async fn invoice_id(&self) -> &str {
         &self.renderer.invoice_id
     }
 
-    #[dbus_interface(property)]
+    #[zbus(property)]
     async fn set_invoice_id(&mut self, id: &str) {
         self.renderer.invoice_id = id.to_string();
     }
 
-    #[dbus_interface(property)]
+    #[zbus(property)]
     async fn invoice_date(&self) -> i64 {
         self.renderer.invoice_date
     }
 
-    #[dbus_interface(property)]
+    #[zbus(property)]
     async fn set_invoice_date(&mut self, date: i64) {
         self.renderer.invoice_date = date;
     }
 
-    #[dbus_interface(property)]
+    #[zbus(property)]
     async fn invoice_recipient(&self) -> InvoiceRecipient {
         self.renderer.invoice_recipient.clone()
     }
 
-    #[dbus_interface(property)]
+    #[zbus(property)]
     async fn set_invoice_recipient(&mut self, recipient: InvoiceRecipient) {
         self.renderer.invoice_recipient = recipient.clone();
     }
 
-    #[dbus_interface(property)]
+    #[zbus(property)]
     async fn set_invoice_entries(&mut self, invoice_entries: Vec<InvoiceEntry>) {
         self.renderer.invoice_entries = invoice_entries.clone();
     }
 
-    #[dbus_interface(property)]
+    #[zbus(property)]
     async fn invoice_entries(&self) -> Vec<InvoiceEntry> {
         self.renderer.invoice_entries.clone()
     }

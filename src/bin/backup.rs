@@ -13,7 +13,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#[zbus::dbus_proxy(
+#[zbus::proxy(
     interface = "io.mainframe.shopsystem.Mailer",
     default_service = "io.mainframe.shopsystem.Mailer",
     default_path = "/io/mainframe/shopsystem/mailer"
@@ -43,14 +43,14 @@ pub enum MessageType {
 	Html
 }
 
-#[zbus::dbus_proxy(
+#[zbus::proxy(
     interface = "io.mainframe.shopsystem.Mail",
     default_service = "io.mainframe.shopsystem.Mail"
 )]
 trait ShopMail {
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn set_from(&self, from: MailContact) -> zbus::Result<()>;
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn set_subject(&self, subject: String) -> zbus::Result<()>;
 
     fn add_recipient(&self, contact: MailContact, recpttype: RecipientType) -> zbus::Result<()>;

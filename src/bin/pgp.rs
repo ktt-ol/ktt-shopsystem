@@ -14,9 +14,9 @@
  */
 
 #[derive(zbus::DBusError, Debug)]
-#[dbus_error(prefix = "io.mainframe.shopsystem.PGP")]
+#[zbus(prefix = "io.mainframe.shopsystem.PGP")]
 enum PGPError {
-    #[dbus_error(zbus_error)]
+    #[zbus(error)]
     DBusError(zbus::Error),
     GPGError(String),
     Utf8Error(String),
@@ -45,7 +45,7 @@ struct PGP {
     keyring: String,
 }
 
-#[zbus::dbus_interface(name = "io.mainframe.shopsystem.PGP")]
+#[zbus::interface(name = "io.mainframe.shopsystem.PGP")]
 impl PGP {
     fn import_archive(&mut self, data: Vec<u8>) -> Result<Vec<String>, PGPError> {
         let mut ctx = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)?;

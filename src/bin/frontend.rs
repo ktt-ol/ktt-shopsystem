@@ -27,7 +27,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use zbus::{self, Connection, dbus_proxy};
+use zbus::{self, Connection, proxy};
 use async_recursion::async_recursion;
 
 static ZERO: [&str; 3] = [
@@ -493,7 +493,7 @@ impl ShopCommand {
     }
 }
 
-#[dbus_proxy(
+#[proxy(
     interface = "io.mainframe.shopsystem.AudioPlayer",
     default_service = "io.mainframe.shopsystem.AudioPlayer",
     default_path = "/io/mainframe/shopsystem/audio"
@@ -516,7 +516,7 @@ async fn play_system(file: &str) -> zbus::Result<()> {
     proxy.play_system(file).await
 }
 
-#[dbus_proxy(
+#[proxy(
     interface = "io.mainframe.shopsystem.Database",
     default_service = "io.mainframe.shopsystem.Database",
     default_path = "/io/mainframe/shopsystem/database"

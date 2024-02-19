@@ -24,7 +24,7 @@ use rocket::data::Capped;
 use rocket::http::{Cookie, CookieJar};
 use std::{collections::HashMap, hash::BuildHasher};
 use zbus;
-use zbus::{Connection, dbus_proxy, zvariant::Type};
+use zbus::{Connection, proxy, zvariant::Type};
 use rand::{Rng, distributions::Alphanumeric};
 use chrono;
 use chrono::prelude::*;
@@ -445,7 +445,7 @@ pub struct ProductDetails {
     deprecated: bool,
 }
 
-#[dbus_proxy(
+#[proxy(
     interface = "io.mainframe.shopsystem.Database",
     default_service = "io.mainframe.shopsystem.Database",
     default_path = "/io/mainframe/shopsystem/database"
@@ -484,7 +484,7 @@ trait ShopDB {
     async fn get_member_ids(&self) -> zbus::Result<Vec<i32>>;
     async fn get_system_member_ids(&self) -> zbus::Result<Vec<i32>>;
     async fn get_user_info(&self, userid: i32) -> zbus::Result<UserInfo>;
-    #[dbus_proxy(name="set_userTheme")]
+    #[zbus(name="set_userTheme")]
     async fn set_user_theme(&self, userid: i32, theme: &str) -> zbus::Result<()>;
     async fn get_invoice(&self, userid: i32, from: i64, to: i64) -> zbus::Result<Vec<InvoiceEntry>>;
     async fn get_user_sale_stats(&self, user: i32, timecode: &str) -> zbus::Result<Vec<UserSaleStatsEntry>>;
@@ -502,7 +502,7 @@ trait ShopDB {
     async fn user_is_disabled(&self, user: i32) -> zbus::Result<bool>;
 }
 
-#[dbus_proxy(
+#[proxy(
     interface = "io.mainframe.shopsystem.AudioPlayer",
     default_service = "io.mainframe.shopsystem.AudioPlayer",
     default_path = "/io/mainframe/shopsystem/audio"
@@ -517,7 +517,7 @@ async fn get_user_themes() -> zbus::Result<Vec<String>> {
     proxy.get_user_themes().await
 }
 
-#[dbus_proxy(
+#[proxy(
     interface = "io.mainframe.shopsystem.PGP",
     default_service = "io.mainframe.shopsystem.PGP",
     default_path = "/io/mainframe/shopsystem/pgp"

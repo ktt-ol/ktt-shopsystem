@@ -18,7 +18,7 @@ use std::path::PathBuf;
 use std::fs::File;
 use std::io::prelude::*;
 use clap::{Parser};
-use zbus::{Connection, DBusError, dbus_proxy, zvariant::Type};
+use zbus::{Connection, DBusError, proxy, zvariant::Type};
 use serde::{Serialize, Deserialize};
 use barcoders::sym::code39::*;
 use barcoders::generators::svg::*;
@@ -49,7 +49,7 @@ pub struct UserInfo {
 	rfid: Vec<String>,
 }
 
-#[dbus_proxy(
+#[proxy(
     interface = "io.mainframe.shopsystem.Database",
     default_service = "io.mainframe.shopsystem.Database",
     default_path = "/io/mainframe/shopsystem/database"

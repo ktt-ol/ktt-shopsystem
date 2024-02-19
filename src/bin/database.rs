@@ -13,7 +13,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 use std::{error::Error, future::pending};
-use zbus::{ConnectionBuilder, DBusError, dbus_interface};
+use zbus::{ConnectionBuilder, DBusError, interface};
 use std::collections::HashMap;
 use r2d2_sqlite::SqliteConnectionManager;
 use serde::{Serialize, Deserialize};
@@ -26,9 +26,9 @@ struct Database {
 }
 
 #[derive(DBusError, Debug)]
-#[dbus_error(prefix = "io.mainframe.shopsystem.Database")]
+#[zbus(prefix = "io.mainframe.shopsystem.Database")]
 enum DatabaseError {
-    #[dbus_error(zbus_error)]
+    #[zbus(error)]
     ZBus(zbus::Error),
     R2D2(String),
     SQL(String),
@@ -226,7 +226,7 @@ fn sha256(msg: &str) -> String {
     hasher.finalize().encode_hex::<String>()
 }
 
-#[dbus_interface(name = "io.mainframe.shopsystem.Database")]
+#[interface(name = "io.mainframe.shopsystem.Database")]
 impl Database {
 
 	fn get_products(&mut self) -> Result<HashMap<u64,String>, DatabaseError> {

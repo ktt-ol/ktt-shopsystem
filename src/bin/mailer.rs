@@ -14,7 +14,7 @@
  */
 
 use std::{error::Error, future::pending};
-use zbus::{Connection, ConnectionBuilder, dbus_interface, DBusError};
+use zbus::{Connection, ConnectionBuilder, interface, DBusError};
 use serde::{Serialize, Deserialize};
 use lettre::transport::smtp::authentication::Credentials;
 use std::collections::HashSet;
@@ -216,54 +216,54 @@ struct DBusMail {
     mail: Mail,
 }
 
-#[dbus_interface(name = "io.mainframe.shopsystem.Mail")]
+#[interface(name = "io.mainframe.shopsystem.Mail")]
 impl DBusMail {
-    #[dbus_interface(property)]
+    #[zbus(property)]
     async fn from(&self) -> MailContact {
         self.mail.from.clone()
     }
 
-    #[dbus_interface(property)]
+    #[zbus(property)]
     async fn set_from(&mut self, from: MailContact) {
         self.mail.from = from;
     }
 
-    #[dbus_interface(property)]
+    #[zbus(property)]
     async fn subject(&self) -> String {
         self.mail.subject.clone()
     }
 
-    #[dbus_interface(property)]
+    #[zbus(property)]
     async fn set_subject(&mut self, subject: String) {
         self.mail.subject = subject;
     }
 
-    #[dbus_interface(property)]
+    #[zbus(property)]
     async fn message_id(&self) -> String {
         self.mail.message_id.clone()
     }
 
-    #[dbus_interface(property)]
+    #[zbus(property)]
     async fn set_message_id(&mut self, message_id: String) {
         self.mail.message_id = message_id;
     }
 
-    #[dbus_interface(property)]
+    #[zbus(property)]
     async fn reply_to(&self) -> String {
         self.mail.reply_to.clone()
     }
 
-    #[dbus_interface(property)]
+    #[zbus(property)]
     async fn set_reply_to(&mut self, reply_to: String) {
         self.mail.reply_to = reply_to;
     }
 
-    #[dbus_interface(property)]
+    #[zbus(property)]
     async fn date(&self) -> MailDate {
         self.mail.date.clone()
     }
 
-    #[dbus_interface(property)]
+    #[zbus(property)]
     async fn set_date(&mut self, date: MailDate) {
         self.mail.date = date;
     }
@@ -306,7 +306,7 @@ struct Mailer {
     mailconnection: zbus::Connection,
 }
 
-#[dbus_interface(name = "io.mainframe.shopsystem.Mailer")]
+#[interface(name = "io.mainframe.shopsystem.Mailer")]
 impl Mailer {
 
     async fn create_mail(&mut self) -> Result<String, MailerError> {

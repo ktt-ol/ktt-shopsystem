@@ -14,7 +14,7 @@
  */
 
 use std::{error::Error, future::pending};
-use zbus::{ConnectionBuilder, SignalContext, dbus_interface};
+use zbus::{ConnectionBuilder, SignalContext, interface};
 use rand::Rng;
 use configparser::ini::Ini;
 use gstreamer::prelude::*;
@@ -38,7 +38,7 @@ struct AudioPlayer {
     player: gstreamer::Element,
 }
 
-#[dbus_interface(name = "io.mainframe.shopsystem.AudioPlayer")]
+#[interface(name = "io.mainframe.shopsystem.AudioPlayer")]
 impl AudioPlayer {
 	fn get_user_themes(&mut self) -> Vec<String> {
         let userpath = self.path.clone() + "/user";
@@ -77,7 +77,7 @@ impl AudioPlayer {
 		self.player.set_state(gstreamer::State::Playing).expect("Failed to set state");
     }
 
-    #[dbus_interface(signal)]
+    #[zbus(signal)]
     async fn end_of_stream(ctxt: &SignalContext<'_>) -> zbus::Result<()>;
 }
 

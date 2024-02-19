@@ -14,7 +14,7 @@
  */
 use std::error::Error;
 use clap::{ArgGroup, Parser};
-use zbus::{Connection, dbus_proxy, zvariant::Type};
+use zbus::{Connection, proxy, zvariant::Type};
 use serde::{Serialize, Deserialize};
 use chrono::{Datelike, offset::TimeZone, prelude::*};
 use unicode_segmentation::UnicodeSegmentation;
@@ -156,7 +156,7 @@ pub enum MessageType {
 	Html
 }
 
-#[dbus_proxy(
+#[proxy(
     interface = "io.mainframe.shopsystem.Database",
     default_service = "io.mainframe.shopsystem.Database",
     default_path = "/io/mainframe/shopsystem/database"
@@ -192,26 +192,26 @@ async fn get_users_with_sales(start: i64, stop: i64) -> zbus::Result<Vec<i32>> {
     proxy.get_users_with_sales(start, stop).await
 }
 
-#[dbus_proxy(
+#[proxy(
     interface = "io.mainframe.shopsystem.InvoicePDF",
     default_service = "io.mainframe.shopsystem.InvoicePDF",
     default_path = "/io/mainframe/shopsystem/invoicepdf"
 )]
 trait ShopPDF {
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn set_invoice_id(&self, id: &str) -> zbus::Result<()>;
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn set_invoice_date(&self, date: i64) -> zbus::Result<()>;
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn set_invoice_recipient(&self, recipient: InvoiceRecipient) -> zbus::Result<()>;
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn set_invoice_entries(&self, invoice_entries: Vec<InvoiceEntry>) -> zbus::Result<()>;
 
     fn generate(&self) -> zbus::Result<Vec<u8>>;
     fn clear(&self) -> zbus::Result<()>;
 }
 
-#[dbus_proxy(
+#[proxy(
     interface = "io.mainframe.shopsystem.Mailer",
     default_service = "io.mainframe.shopsystem.Mailer",
     default_path = "/io/mainframe/shopsystem/mailer"
@@ -235,14 +235,14 @@ pub enum RecipientType {
 	Bcc
 }
 
-#[dbus_proxy(
+#[proxy(
     interface = "io.mainframe.shopsystem.Mail",
     default_service = "io.mainframe.shopsystem.Mail"
 )]
 trait ShopMail {
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn set_from(&self, from: MailContact) -> zbus::Result<()>;
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn set_subject(&self, subject: String) -> zbus::Result<()>;
 
     fn add_recipient(&self, contact: MailContact, recpttype: RecipientType) -> zbus::Result<()>;

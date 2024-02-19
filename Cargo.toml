@@ -15,7 +15,7 @@ tokio = { version = "1", features = ["full"] }
 rocket_dyn_templates = { version = "0.1.0", features = ["tera"] }
 serde = { version = "1.0" }
 serde_json = { version = "1.0" }
-zbus = { version = "3", default-features = false, features = ["tokio"] }
+zbus = { version = "4", default-features = false, features = ["tokio"] }
 rand = { version = "0.8" }
 chrono = { version = "0.4", features = ["serde"] }
 csv = { version = "1.3" }
