@@ -39,7 +39,7 @@ ratatui = { version = "0.26" }
 crossterm = { version = "0.27" }
 async-recursion = { version = "1.1" }
 textwrap = { version = "0.16" }
-barcoders = { version = "1.0", features = ["svg"] }
+barcoders = { version = "2.0", features = ["svg"] }
 unicode-segmentation = { version = "1.11.0" }
 
 [package.metadata.deb]

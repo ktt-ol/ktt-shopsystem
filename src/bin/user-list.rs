@@ -87,12 +87,10 @@ struct User {
 
 async fn get_user_list() -> Result<Vec<User>> {
     let memberids = get_member_ids().await?;
-    let svg = SVG {
-        height: 200,
-        xdim: 2,
-        foreground: Color::black(),
-        background: Color::white(),
-    };
+    let svg = SVG::new(200)
+        .xdim(2)
+        .foreground(Color::black())
+        .background(Color::white());
     let mut users = Vec::new();
 
     for id in memberids {

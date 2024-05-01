@@ -69,6 +69,7 @@ impl<'r> Responder<'r, 'r> for WebShopError {
     }
 }
 
+#[allow(dead_code)]
 enum UserInfoListError {
     IO(std::io::Error),
     ParseInt(std::num::ParseIntError),
