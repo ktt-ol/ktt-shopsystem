@@ -1082,12 +1082,35 @@ async fn product_details_json(ean: u64) -> Result<Json<ProductDetails>, WebShopE
     }))
 }
 
+async fn product_missing(cookies: &CookieJar<'_>, ean: u64) -> Result<Template, WebShopError> {
+    let session = get_session(cookies).await?;
+    let categories = get_category_list().await?;
+    Ok(Template::render("products/missing", context! { page: "products/missing", session: session, ean: ean, categories: categories }))
+}
+
 #[get("/products/<ean>")]
 async fn product_details(cookies: &CookieJar<'_>, ean: u64) -> Result<Template, WebShopError> {
-    let ean = ean_alias_get(ean).await?;
     let session = get_session(cookies).await?;
+    let ean = ean_alias_get(ean).await?;
+    let name;
+    match get_product_name(ean).await {
+        Ok(result) => name = result,
+        Err(err) => {
+            match err {
+                zbus::Error::MethodError(ref errname, ref errmsg, _) => {
+                    if errname.inner().as_str() == "io.mainframe.shopsystem.Database.SQL" && *errmsg == Some("Query returned no rows".to_string()) {
+                        return product_missing(cookies, ean).await;
+                    } else {
+                        return Err(WebShopError::DBusError(err));
+                    }
+                },
+                _ => {
+                    return Err(WebShopError::DBusError(err));
+                }
+            }
+        }
+    }
     let aliases = get_product_aliases(ean).await?;
-    let name = get_product_name(ean).await?;
     let category = get_product_category(ean).await?;
     let amount = get_product_amount(ean).await?;
     let deprecated = get_product_deprecated(ean).await?;
