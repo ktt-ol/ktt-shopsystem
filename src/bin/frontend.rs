@@ -714,8 +714,8 @@ impl ShopState {
                             self.audiotheme = audiotheme.ok();
                             let _ = play_user(&self.audiotheme.as_ref().unwrap(), "login").await;
                         },
-                        Err(error) => {
-                            self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: format!("No such user: {}", error.to_string())});
+                        Err(_error) => {
+                            self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: format!("User ID {} does not (yet) exist", userid)});
                             let _ = play_system("error.ogg").await;
                         }
                     }
