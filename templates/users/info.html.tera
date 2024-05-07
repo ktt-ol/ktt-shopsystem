@@ -14,9 +14,9 @@
 					<tr>
 						<th scope="row">Barcode</th>
 						<td>
-							<canvas id="barcode"></canvas><br>
-							<a href="#" onclick="window.open(code39_url());">Download</a><br>
-							<a href="https://barcode.tec-it.com/barcode.ashx?translate-esc=off&data=USER%20{{userinfo.id}}&code=Code39FullASCII&multiplebarcodes=false&unit=Fit&dpi=96&imagetype=png&rotation=0&color=%23000000&bgcolor=%23ffffff&qunit=Mm&quiet=0" target="_blank">Get HighRes Version (external)</a>
+							<a href="/users/{{ userinfo.id }}/barcode.svg" target="_blank">
+								<img src="/users/{{ userinfo.id }}/barcode.svg" width="320" alt="Barcode" />
+							</a><br>
 						</td>
 					</tr>
 					<tr><th scope="row">RFID</th><td><ul>{% for rfid in userinfo.rfid %}<li>{{rfid}}</li>{% endfor %}</ul></td></tr>
@@ -66,9 +66,6 @@
 	</div>
 
 	<script type="text/javascript">
-	code39_init();
-	code39_draw("USER {{userinfo.id}}", true);
-
 	var update_auth_button = function(data, buttonid, datafield) {
 		toggle_button_yes_no(buttonid, data[datafield]);
 	}

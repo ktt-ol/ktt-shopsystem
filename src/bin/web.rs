@@ -32,12 +32,22 @@ use std::num::ParseIntError;
 use rocket::data::{Data, ToByteUnit};
 use rocket::response::Responder;
 use configparser::ini::Ini;
+use barcoders::sym::code39::*;
+use barcoders::generators::svg::*;
+use rocket::http::ContentType;
+use pangocairo::glib::Bytes;
 
 enum WebShopError {
     IOError(std::io::Error),
     DBusError(zbus::Error),
     PermissionDenied(),
     UserInfoListError(UserInfoListError),
+    BarcodeError(barcoders::error::Error),
+    CairoError(cairo::Error),
+    RSVGLoadingError(rsvg::LoadingError),
+    RSVGRenderingError(rsvg::RenderingError),
+    UTF8Error(std::string::FromUtf8Error),
+    UnboxError(std::string::String),
 }
 
 impl From<zbus::Error> for WebShopError {
@@ -58,6 +68,36 @@ impl From<UserInfoListError> for WebShopError {
     }
 }
 
+impl From<barcoders::error::Error> for WebShopError {
+    fn from(err: barcoders::error::Error) -> WebShopError {
+            WebShopError::BarcodeError(err)
+    }
+}
+
+impl From<cairo::Error> for WebShopError {
+    fn from(err: cairo::Error) -> WebShopError {
+            WebShopError::CairoError(err)
+    }
+}
+
+impl From<rsvg::LoadingError> for WebShopError {
+    fn from(err: rsvg::LoadingError) -> WebShopError {
+            WebShopError::RSVGLoadingError(err)
+    }
+}
+
+impl From<rsvg::RenderingError> for WebShopError {
+    fn from(err: rsvg::RenderingError) -> WebShopError {
+            WebShopError::RSVGRenderingError(err)
+    }
+}
+
+impl From<std::string::FromUtf8Error> for WebShopError {
+    fn from(err: std::string::FromUtf8Error) -> WebShopError {
+            WebShopError::UTF8Error(err)
+    }
+}
+
 impl<'r> Responder<'r, 'r> for WebShopError {
     fn respond_to(self, req: &rocket::Request) -> rocket::response::Result<'r> {
         match self {
@@ -65,6 +105,12 @@ impl<'r> Responder<'r, 'r> for WebShopError {
             WebShopError::PermissionDenied() => Template::render("error", context! { page: "error", errmsg: "Permission Denied" }).respond_to(req),
             WebShopError::IOError(e) => Template::render("error", context! { page: "error", errmsg: e.to_string() }).respond_to(req),
             WebShopError::UserInfoListError(e) => Template::render("error", context! { page: "error", errmsg: e.to_string() }).respond_to(req),
+            WebShopError::BarcodeError(e) => Template::render("error", context! { page: "error", errmsg: e.to_string() }).respond_to(req),
+            WebShopError::CairoError(e) => Template::render("error", context! { page: "error", errmsg: e.to_string() }).respond_to(req),
+            WebShopError::RSVGLoadingError(e) => Template::render("error", context! { page: "error", errmsg: e.to_string() }).respond_to(req),
+            WebShopError::RSVGRenderingError(e) => Template::render("error", context! { page: "error", errmsg: e.to_string() }).respond_to(req),
+            WebShopError::UTF8Error(e) => Template::render("error", context! { page: "error", errmsg: e.to_string() }).respond_to(req),
+            WebShopError::UnboxError(e) => Template::render("error", context! { page: "error", errmsg: e.to_string() }).respond_to(req),
         }
     }
 }
@@ -1463,6 +1509,85 @@ async fn user_info(cookies: &CookieJar<'_>, id: i32) -> Result<Template, WebShop
     Ok(Template::render("users/info", context! { page: "users/info", userinfo: userinfo, userauth: userauth, sound_themes: sound_themes, session: session }))
 }
 
+fn render_centered_text(ctx: &cairo::Context, x: f64, y: f64, w: i32, msg: &str) -> Result<(), cairo::Error> {
+    ctx.save()?;
+    ctx.move_to(x, y);
+    ctx.set_source_rgb(0.0, 0.0, 0.0);
+
+    /* get pango layout */
+    let layout = pangocairo::functions::create_layout(&ctx);
+
+    /* setup font */
+    let mut font = pango::FontDescription::new();
+    font.set_family("LMRoman12");
+    font.set_size(18 * pango::SCALE);
+    layout.set_font_description(Some(&font));
+
+    /* left alignment */
+    layout.set_alignment(pango::Alignment::Center);
+    layout.set_wrap(pango::WrapMode::WordChar);
+
+    /* set line spacing */
+    layout.set_spacing((-2.1 * pango::SCALE as f32) as i32);
+
+    /* set page width */
+    layout.set_width(w * pango::SCALE);
+
+    /* write invoice date */
+    layout.set_text(msg);
+
+    /* render text */
+    pangocairo::functions::update_layout(ctx, &layout);
+    pangocairo::functions::show_layout(ctx, &layout);
+
+    ctx.restore()?;
+    Ok(())
+}
+
+#[get("/users/<id>/barcode.svg")]
+async fn user_barcode(_cookies: &CookieJar<'_>, id: i32) -> Result<(ContentType, String), WebShopError> {
+    let barcodesvg = SVG::new(100)
+        .xdim(2)
+        .xmlns("http://www.w3.org/2000/svg".to_string())
+        .foreground(Color::black())
+        .background(Color::white());
+    let barcodedata = Code39::with_checksum(format!("USER {}", id))?.encode();
+    let barcode = barcodesvg.generate(&barcodedata)?;
+
+    let buffer: std::io::Cursor<Vec<u8>> = Default::default();
+    let document = cairo::SvgSurface::for_stream(500.0, 200.0, buffer)?;
+    let rect = cairo::Rectangle::new(50.0, 0.0, 400.0, 150.0);
+    let ctx = cairo::Context::new(&document)?;
+
+    ctx.set_source_rgb(1.0, 1.0, 1.0);
+    ctx.rectangle(0.0, 0.0, 500.0, 200.0);
+    ctx.fill()?;
+
+    let bytes = Bytes::from(barcode.as_bytes());
+    let stream = gio::MemoryInputStream::from_bytes(&bytes);
+    let handle = rsvg::Loader::new().read_stream(&stream, None::<&gio::File>, None::<&gio::Cancellable>)?;
+    let renderer = rsvg::CairoRenderer::new(&handle);
+    renderer.render_document(&ctx, &rect)?;
+
+    let text = format!("User {}", id);
+    render_centered_text(&ctx, 50.0, 150.0, 400, &text)?;
+
+    document.flush();
+    let result = document.finish_output_stream();
+
+    match result {
+        Ok(boxedstream) => {
+            match boxedstream.downcast::<std::io::Cursor<Vec<u8>>>() {
+                Ok(buffer) => Ok((ContentType::SVG, String::from_utf8(buffer.into_inner())?)),
+                Err(_err) => Err(WebShopError::UnboxError("Failed to unbox".to_string())),
+            }
+        },
+        Err(e) => {
+            Err(e.error.into())
+        },
+    }
+}
+
 #[post("/users/set-sound-theme/<userid>", format = "application/json", data = "<theme>")]
 async fn user_sound_theme_set(cookies: &CookieJar<'_>, userid: i32, theme: Json<String>) -> Result<Json<bool>, Forbidden<String>> {
     let session = match get_session(cookies).await {
@@ -1897,7 +2022,7 @@ fn rocket() -> _ {
     rocket::custom(figment)
         .register("/", catchers![not_found])
         .mount("/static", rocket::fs::FileServer::from(staticpath))
-        .mount("/", routes![login, logout, index, products, product_new, product_details, product_details_json, web_product_deprecate, web_product_add_prices, web_product_restock, web_product_alias_add, web_product_metadata_set, product_bestbefore, product_inventory, product_inventory_apply, aliases, suppliers, web_suppliers_new, cashbox, cashbox_state, cashbox_history_json, cashbox_update, cashbox_details, users, user_info, user_sound_theme_set, user_password_set, user_toggle_auth, user_invoice, user_invoice_full, user_stats, user_import, user_import_upload, user_import_apply, user_import_pgp, user_import_pgp_upload])
+        .mount("/", routes![login, logout, index, products, product_new, product_details, product_details_json, web_product_deprecate, web_product_add_prices, web_product_restock, web_product_alias_add, web_product_metadata_set, product_bestbefore, product_inventory, product_inventory_apply, aliases, suppliers, web_suppliers_new, cashbox, cashbox_state, cashbox_history_json, cashbox_update, cashbox_details, users, user_info, user_barcode, user_sound_theme_set, user_password_set, user_toggle_auth, user_invoice, user_invoice_full, user_stats, user_import, user_import_upload, user_import_apply, user_import_pgp, user_import_pgp_upload])
         .attach(Template::custom(|engines| {
             engines.tera.register_filter("cent2euro", cent2euro);
             engines.tera.register_filter("gendericon", gendericon);
