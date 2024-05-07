@@ -33,6 +33,17 @@
 
 				<h2>Price History</h2>
 
+				{% if session.auth_products %}
+				<form onsubmit="event.preventDefault(); submit_add_prices();">
+					<div class="input-group">
+						<input id="memberprice" name="memberprice" placeholder="Member" aria-label="Member price" type="text" class="form-control">
+						<input id="guestprice" name="guestprice" placeholder="Guest" aria-label="Guest price" type="text" class="form-control">
+						<input id="addprices" name="addprices" type="button" value="Add new prices" class="btn btn-primary">
+					</div>
+				</form>
+				<br />
+				{% endif %}
+
 				<table id="pricehistorytable" class="table table-bordered table-striped table-hover">
 					<thead>
 						<tr>
@@ -42,7 +53,7 @@
 						</tr>
 					</thead>
 					<tbody class="table-group-divider">
-						{% for price in prices %}<tr>
+						{% for price in prices | reverse %}<tr>
 							<td>{{price.timestamp | date(format="%Y-%m-%d %H:%M", timezone="Europe/Berlin") }}</td>
 							<td>{{price.memberprice | cent2euro}} €</td>
 							<td>{{price.guestprice | cent2euro}} €</td>
@@ -50,15 +61,6 @@
 					</tbody>
 				</table>
 
-				{% if session.auth_products %}
-				<form onsubmit="event.preventDefault(); submit_add_prices();">
-					<div class="input-group">
-						<input id="memberprice" name="memberprice" placeholder="Member" aria-label="Member price" type="text" class="form-control">
-						<input id="guestprice" name="guestprice" placeholder="Guest" aria-label="Guest price" type="text" class="form-control">
-						<input id="addprices" name="addprices" type="button" value="Add new prices" class="btn btn-primary">
-					</div>
-				</form>
-				{% endif %}
 			</div>
 			<div class="col">
 				<h2>Metadata</h2>
@@ -78,27 +80,6 @@
 
 				<h2>Restock</h2>
 
-				<table id="restocktable" class="table table-bordered table-striped table-hover">
-					<thead>
-						<tr>
-							<th scope="col">Date</th>
-							<th scope="col">Amount</th>
-							<th scope="col">Unit Price</th>
-							<th scope="col">Supplier</th>
-							<th scope="col">Best Before Date</th>
-						</tr>
-					</thead>
-					<tbody class="table-group-divider">
-						{% for res in restock %}<tr>
-							<td>{{ res.timestamp | date(format="%Y-%m-%d %H:%M", timezone="Europe/Berlin") }}</td>
-							<td>{{ res.amount }}</td>
-							<td>{{ res.price | cent2euro }} €</td>
-							<td>{{ res.supplier }}</td>
-							<td>{{ res.best_before_date | date(format="%Y-%m-%d %H:%M", timezone="Europe/Berlin") }}</td>
-						</tr>{% endfor %}
-					</tbody>
-				</table>
-
 				{% if session.auth_products %}
 				<form onsubmit="event.preventDefault(); submit_restock();">
 					<div class="input-group">
@@ -114,7 +95,30 @@
 						<input id="restock" name="restock" type="button" value="Restock" class="btn btn-primary">
 					</div>
 				</form>
+				<br />
 				{% endif %}
+
+				<table id="restocktable" class="table table-bordered table-striped table-hover">
+					<thead>
+						<tr>
+							<th scope="col">Date</th>
+							<th scope="col">Amount</th>
+							<th scope="col">Unit Price</th>
+							<th scope="col">Supplier</th>
+							<th scope="col">Best Before Date</th>
+						</tr>
+					</thead>
+					<tbody class="table-group-divider">
+						{% for res in restock | reverse %}<tr>
+							<td>{{ res.timestamp | date(format="%Y-%m-%d %H:%M", timezone="Europe/Berlin") }}</td>
+							<td>{{ res.amount }}</td>
+							<td>{{ res.price | cent2euro }} €</td>
+							<td>{{ res.supplier }}</td>
+							<td>{{ res.best_before_date | date(format="%Y-%m-%d %H:%M", timezone="Europe/Berlin") }}</td>
+						</tr>{% endfor %}
+					</tbody>
+				</table>
+
 			</div>
 		</div>
 	</div>
