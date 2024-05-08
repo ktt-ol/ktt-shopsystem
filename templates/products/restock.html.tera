@@ -1,0 +1,337 @@
+{% extends "base" %}
+{% block title %}Restock{% endblock title %}
+{% block content %}
+	<div class="container">
+		<h2>Restock</h2>
+
+		<p>This can be used to restock multiple products in a more optimized way than going to each product's page. The page heavily relies on javascript.</p>
+
+		<form class="">
+			<table id="producttable" class="table table-bordered table-striped table-hover">
+				<thead>
+					<tr>
+						<th scope="col">EAN</th>
+						<th scope="col">Name</th>
+						<th scope="col">Amount</th>
+						<th scope="col">Multiplier</th>
+						<th scope="col">Price per Piece</th>
+						<th scope="col">Best Before Date</th>
+						<th scope="col">Status</th>
+					</tr>
+				</thead>
+				<tbody class="table-group-divider">
+					<tr id="last">
+						<td colspan="6">
+							<div class="dropdown row">
+								<div class="input-group dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+									<span class="input-group-text"><i class="bi bi-search"></i></span>
+									<input type="search" id="newproduct" name="newproduct" placeholder="EAN or Name" class="form-control" oninput="search_product(this.value)" onclick="newproduct_input_clicked()" autocomplete="off">
+								</div>
+								<ul id="productsearchdropdown" class="dropdown-menu" aria-labelledby="newproduct">
+								</ul>
+							</div>
+						</td>
+						<td colspan="1"><button id="addproduct" class="btn btn-primary" type="button" onclick="add_product()" disabled=disabled><span class="bi-plus-lg" aria-hidden="true"></span></button></td>
+					</tr>
+				</tbody>
+			</table>
+
+			<div class="form-group row mb-2">
+				<label for="supplier" class="col-sm-2 col-form-label">Supplier</label>
+				<div class="col-sm-10">
+					<select class="form-select" id="supplier" name="supplier" title="Supplier">
+						<option value="0">Unknown</option>
+						{% for supplier in suppliers %}
+							<option value="{{ supplier.id }}">{{ supplier.name }}</option>
+						{% endfor %}
+					</select>
+				</div>
+			</div>
+
+			<button id="submit" type="button" class="btn btn-primary" onclick="submit_all();">Submit</button>
+		</form>
+
+		<div id="errordialog" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="errordialog" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h2 class="modal-title">Error</h2>
+						<button type="button" class="btn-close" data-dismiss="errordialog" onclick="hide_error_dialog();" aria-label="Close">
+						</button>
+					</div>
+					<div id="errormessage" class="modal-body">
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-dismiss="errordialog" onclick="hide_error_dialog();">Close</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script type="text/javascript">
+		var product = null;
+
+		var set_addproduct_button_state = function(state) {
+			if (state) {
+				$("#addproduct").removeAttr('disabled');
+			} else {
+				$("#addproduct").attr('disabled', 'disabled');
+			}
+		}
+
+		var get_product_info_by_ean = function(ean) {
+			$.getJSON("/products/"+ ean +"/json", function(data) {
+				product = data;
+				set_addproduct_button_state(product);
+			}).fail(function() {
+				product = null;
+				set_addproduct_button_state(product);
+			});
+		};
+
+		var search_products_by_name = function(query) {
+			$.getJSON("/products/search/"+ query, function(data) {
+				products = data;
+
+				if (products.length >= 1) {
+					$('#productsearchdropdown').empty();
+					for (const p of products) {
+						listentry = '<li><a class="dropdown-item" href="#" onclick="productsearch_update('+p.ean+', \''+p.name+'\');">'+p.ean+' - '+p.name+'</a></li>';
+						$('#productsearchdropdown').append(listentry);
+					}
+					$("#productsearchdropdown").show();
+				} else {
+					$("#productsearchdropdown").hide();
+					product = null;
+					set_addproduct_button_state(product);
+				}
+			}).fail(function() {
+				product = null;
+				set_addproduct_button_state(product);
+			});
+		};
+
+		var search_product = function(query) {
+			if ($.isNumeric(query) && (query.length == 13 || query.length == 8)) {
+				get_product_info_by_ean(query);
+			} else if (query.length >= 5)
+				search_products_by_name(query);
+			else
+				$("#addproduct").attr('disabled', 'disabled');
+		}
+
+		var ean_is_in_productlist = function(ean) {
+			let duplicate = false;
+			$('#producttable > tbody > tr').each(function(index, tr) {
+				if (tr.children[0].innerText == ean.toString()) {
+					duplicate = true;
+				}
+			});
+
+			return duplicate;
+		}
+
+		var append_product_row = function() {
+			let td_ean = '<td>'+product.ean+'</td>';
+			let td_name = '<td><a href="/products/'+product.ean+'">'+product.name+'</a></td>';
+			let td_amount = '<td><input name="'+product.ean+'_amount" placeholder="Amount" aria-label="Amount" type="number" min="0" class="form-control" oninput="check_row_input('+product.ean+');"></td>';
+			let td_multiplier = '';
+			if (product.container_size > 1) {
+				td_multiplier = '<td><select name="multiplier" class="form-select"><option value="1">1x (article)</option><option value="'+product.container_size+'" selected>'+product.container_size+'x (container)</option></select></td>';
+			} else {
+				td_multiplier = '<td><input type="hidden" name="multiplier" value="1">1x (article)</td>'
+			}
+			let td_price = '<td><input name="'+product.ean+'_price" placeholder="'+cent2euro(product.last_price)+' (last price)" aria-label="Price per piece" type="text" class="form-control" oninput="check_row_input('+product.ean+');"></td>';
+			let td_bbd = '<td><input name="'+product.ean+'_best_before_date" type="date" oninput="check_row_input('+product.ean+');"></td>';
+			let td_status = '<td></td>';
+
+			$('#producttable tr:last').before('<tr id="row_'+product.ean+'">'+td_ean+td_name+td_amount+td_multiplier+td_price+td_bbd+td_status+'</tr>');
+			check_row_input(product.ean)
+			productsearch_clear();
+		}
+
+		var check_row_input = function(ean) {
+			let tr = $("#row_"+ean)[0];
+			let rowdata = extract_row_data(tr);
+			let status = check_row_data(rowdata);
+			let color = status == "READY" ? "green" : "red";
+			update_row_status(tr, color, status);
+		}
+
+		var hide_error_dialog = function(message) {
+			$("#errordialog").modal('hide');
+			$("#errormessage").empty();
+		}
+
+		var show_error_dialog = function(message) {
+			$("#errormessage").empty();
+			$("#errormessage").append(message);
+			$("#errordialog").modal('show');
+		}
+
+		var get_last_restock = function() {
+			$.getJSON("/products/"+product.ean+"/get-last-restock", function(data) {
+				product.last_price = data.price;
+				product.last_amount = data.price;
+				append_product_row();
+			}).fail(function() {
+				product.last_price = 0;
+				product.last_amount = 0;
+				append_product_row();
+			});
+		}
+
+		var add_product = function() {
+			if (product === null) {
+				show_error_dialog("Unknown/Invalid EAN");
+				$("#addproduct").attr('disabled', 'disabled');
+				return;
+			}
+
+			if (ean_is_in_productlist(product.ean)) {
+				show_error_dialog("product EAN already in the table!");
+				return;
+			}
+
+			$.getJSON("/products/"+product.ean+"/metadata-get", function(data) {
+				product.container_size = data.container_size;
+				product.product_size = data.product_size;
+				product.product_size_is_weight = data.product_size_is_weight;
+				product.deposit = data.deposit;
+				product.container_deposit = data.container_deposit;
+				get_last_restock();
+			}).fail(function() {
+				product.container_size = 0;
+				get_last_restock();
+			});
+		}
+
+		var productsearch_clear = function() {
+			$('#productsearchdropdown').empty();
+			$("#productsearchdropdown").hide();
+			$('#newproduct').val('');
+			$("#addproduct").attr('disabled', 'disabled');
+		}
+
+		var productsearch_update = function(ean, name) {
+			$('#newproduct').val(ean);
+			$('#productsearchdropdown').empty();
+			$("#productsearchdropdown").hide();
+			product = {ean: ean, name: name}
+			set_addproduct_button_state(product);
+			$('#newproduct').focus();
+		}
+
+		var newproduct_input_clicked = function() {
+			if ($('#productsearchdropdown').children().length == 0)
+				$("#productsearchdropdown").hide();
+			else
+				$("#productsearchdropdown").show();
+		}
+
+		var restock_one = function(data, supplier) {
+			let requestdata = { timestamp: 0, amount: data.amount * data.multiplier, price: data.price, supplier: supplier, best_before_date: data.bbd };
+
+			var req = $.postJSON("/products/"+data.ean+"/restock", requestdata)
+				.done(function(response) {
+					console.log("submit for "+data.ean+" ("+data.name+") successful");
+					update_row_status(data.htmlrow, "green", "OK");
+				})
+				.fail(function(jqXHR, textStatus, errorThrown) {
+					console.log("submit for "+data.ean+" ("+data.name+") failed");
+					update_row_status(data.htmlrow, "red", "FAILED");
+				});
+		}
+
+		var extract_row_data = function(row) {
+			rowdata = {
+				htmlrow: row,
+				ean: parseInt(row.children[0].innerText),
+				name: row.children[1].children[0].innerText,
+				amount: parseInt(row.children[2].children[0].value),
+				multiplier: parseInt(row.children[3].children[0].value),
+				price: euro2cent(row.children[4].children[0].value),
+				bbd: isodate2ts(row.children[5].children[0].value),
+			};
+			return rowdata;
+		}
+
+		var check_row_data = function(data) {
+			if (data.ean == 0)
+				return "Invalid EAN";
+			if (data.name == "")
+				return "Invalid Name";
+			if (isNaN(data.amount) || data.amount == 0)
+				return "Invalid Amount";
+			if (isNaN(data.multiplier) || data.multiplier == 0)
+				return "Invalid Multiplier";
+			if (isNaN(data.price) || data.price == 0)
+				return "Invalid Price";
+			if (isNaN(data.bbd) || data.bbd < isodate2ts("2000-01-01"))
+				return "Invalid Best Before Date";
+			return "READY";
+		}
+
+		var color_lookup = function(color) {
+			dark = (document.documentElement.getAttribute('data-bs-theme') == "dark");
+
+			if (color == "red") {
+				return dark ? "#842029" : "#dc3545";
+			} else if (color == "green") {
+				return dark ? "#0f5132" : "#198754";
+			}
+			return "default";
+		}
+
+		var update_row_status = function(row, color, status) {
+			let htmlcolor = color_lookup(color);
+			row.children[6].setAttribute("style", "background-color: " + htmlcolor + ";");
+			row.children[6].innerText = status
+		}
+
+		var submit_all = function() {
+			let submissiondata = []
+			let submissionok = true;
+
+			$('#producttable > tbody > tr').each(function(index, tr) {
+				if (tr.id != "last") {
+					let rowdata = extract_row_data(tr)
+					let status = check_row_data(rowdata);
+					let color = status == "READY" ? "green" : "red";
+					update_row_status(tr, color, status);
+					submissiondata.push(rowdata)
+					if (status != "READY")
+						submissionok = false;
+				}
+			});
+
+			let supplier = parseInt($("#supplier").val());
+
+			if (submissionok && submissiondata.length > 0) {
+				submissiondata.forEach((row) => restock_one(row, supplier));
+				$("#submit").prop("disabled", true);
+			} else {
+				console.log("submission is not ready...");
+			}
+		}
+
+		$("#newproduct").on('keydown', function(e) {
+			if (e.key === 'Enter' || e.keyCode === 13) {
+				e.preventDefault();
+				add_product();
+				return false;
+			} else if (e.key == "ArrowDown" || e.keyCode == 40) {
+				$("#productsearchdropdown :first-child :first-child").focus();
+				e.preventDefault();
+			} else if (e.key == "ArrowUp" || e.keyCode == 38) {
+				$("#productsearchdropdown :last-child :first-child").focus();
+				e.preventDefault();
+			} else if (e.key == "Escape" || e.keyCode == 27) {
+				$("#productsearchdropdown").hide();
+				e.preventDefault();
+			}
+
+		});
+	</script>
+{% endblock content %}

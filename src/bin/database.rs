@@ -243,6 +243,23 @@ impl Database {
 		Ok(result)
 	}
 
+	fn products_search(&mut self, search_query: &str) -> Result<Vec<Product>, DatabaseError> {
+		let mut result = Vec::new();
+        let query = "SELECT id, name FROM products WHERE name LIKE '%' || ? || '%' ORDER BY id";
+        let connection = self.pool.get()?;
+        let mut statement = connection.prepare(query)?;
+        let mut rows = statement.query([search_query])?;
+
+        while let Some(row) = rows.next()? {
+            result.push(Product {
+                ean: row.get(0)?,
+                name: row.get(1)?
+            });
+        }
+
+		Ok(result)
+    }
+
     fn get_productlist(&mut self) -> Result<Vec<DetailedProductInfo>, DatabaseError> {
 		let mut result = Vec::new();
         let query = "SELECT products.id, products.name, categories.name, amount, memberprice, guestprice, deprecated FROM products, prices, categories WHERE products.id = prices.product AND categories.id = products.category AND prices.valid_from = (SELECT valid_from FROM prices WHERE product = products.id ORDER BY valid_from DESC LIMIT 1) ORDER BY categories.name, products.name";
@@ -387,6 +404,22 @@ impl Database {
 
 		Ok(result)
 	}
+
+	fn get_last_restock(&mut self, product: u64) -> Result<RestockEntry, DatabaseError> {
+        let query = "SELECT timestamp, amount, price, supplier, best_before_date FROM restock WHERE product = ? ORDER BY timestamp DESC LIMIT 1;";
+        let connection = self.pool.get()?;
+        let mut statement = connection.prepare(query)?;
+        let (timestamp, amount, price, supplier, bbd) = statement.query_row([product],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)))?;
+
+        Ok(RestockEntry {
+            timestamp: timestamp,
+            amount: amount,
+            price: price,
+            supplier: supplier,
+            best_before_date: bbd,
+        })
+    }
 
 	fn buy(&mut self, user: i32, article: u64) -> Result<(), DatabaseError> {
         let query = "INSERT INTO sales ('user', 'product', 'timestamp') VALUES (?, ?, ?)";

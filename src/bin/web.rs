@@ -505,7 +505,9 @@ trait ShopDB {
     async fn product_deprecate(&self, ean: u64, deprecated: bool) -> zbus::Result<()>;
     async fn product_metadata_get(&self, ean: u64) -> zbus::Result<ProductMetadata>;
     async fn product_metadata_set(&self, ean: u64, metadata: ProductMetadata) -> zbus::Result<()>;
+    async fn products_search(&self, search_query: &str) -> zbus::Result<Vec<Product>>;
     async fn get_restocks(&self, ean: u64, descending: bool) -> zbus::Result<Vec<RestockEntry>>;
+    async fn get_last_restock(&self, ean: u64) -> zbus::Result<RestockEntry>;
     async fn bestbeforelist(&self) -> zbus::Result<Vec<BestBeforeEntry>>;
     async fn get_supplier_list(&self) -> zbus::Result<Vec<Supplier>>;
     async fn add_supplier(&self, name: &str, postal_code: &str, city: &str, street: &str, phone: &str, website: &str) -> zbus::Result<()>;
@@ -692,10 +694,22 @@ async fn new_price(product: u64, timestamp: i64, memberprice: i32, guestprice: i
     proxy.new_price(product, timestamp, memberprice, guestprice).await
 }
 
+async fn products_search(search_query: &str) -> zbus::Result<Vec<Product>> {
+    let connection = Connection::system().await?;
+    let proxy = ShopDBProxy::new(&connection).await?;
+    proxy.products_search(search_query).await
+}
+
 async fn get_restocks(ean: u64, descending: bool) -> zbus::Result<Vec<RestockEntry>> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.get_restocks(ean, descending).await
+}
+
+async fn get_last_restock(ean: u64) -> zbus::Result<RestockEntry> {
+    let connection = Connection::system().await?;
+    let proxy = ShopDBProxy::new(&connection).await?;
+    proxy.get_last_restock(ean).await
 }
 
 async fn get_bestbeforelist() -> zbus::Result<Vec<BestBeforeEntry>> {
@@ -1108,7 +1122,7 @@ async fn product_inventory_apply(cookies: &CookieJar<'_>, data: Json<InventoryDa
     }
 }
 
-#[get("/products/<ean>/json")]
+#[get("/products/<ean>/json", rank=1)]
 async fn product_details_json(ean: u64) -> Result<Json<ProductDetails>, WebShopError> {
     Ok(Json(ProductDetails {
         ean: ean,
@@ -1119,10 +1133,28 @@ async fn product_details_json(ean: u64) -> Result<Json<ProductDetails>, WebShopE
     }))
 }
 
+#[get("/products/search/<search>", rank=2)]
+async fn product_search_json(search: &str) -> Result<Json<Vec<Product>>, WebShopError> {
+    Ok(Json(products_search(search).await?))
+}
+
 async fn product_missing(cookies: &CookieJar<'_>, ean: u64) -> Result<Template, WebShopError> {
     let session = get_session(cookies).await?;
     let categories = get_category_list().await?;
     Ok(Template::render("products/missing", context! { page: "products/missing", session: session, ean: ean, categories: categories }))
+}
+
+#[get("/products/restock")]
+async fn product_restock(cookies: &CookieJar<'_>) -> Result<Template, WebShopError> {
+    let session = get_session(cookies).await?;
+
+    if !session.superuser && !session.auth_products {
+        return Err(WebShopError::PermissionDenied());
+    }
+
+    let suppliers = get_supplier_list().await?;
+
+    Ok(Template::render("products/restock", context! { page: "products/restock", session: session, suppliers: suppliers }))
 }
 
 #[get("/products/<ean>")]
@@ -1248,6 +1280,25 @@ async fn web_product_restock(cookies: &CookieJar<'_>, ean: u64, data: Json<Resto
     }))
 }
 
+#[get("/products/<ean>/get-last-restock")]
+async fn web_product_last_restock(cookies: &CookieJar<'_>, ean: u64) -> Result<Json<RestockEntry>, Forbidden<String>> {
+    let session = match get_session(cookies).await {
+        Err(error) => { return Err(Forbidden(error.to_string())); },
+        Ok(session) => session,
+    };
+
+    if !session.superuser && !session.auth_products {
+        return Err(Forbidden("Missing Permission".to_string()));
+    }
+
+    let data = match get_last_restock(ean).await {
+        Ok(data) => Ok(data),
+        Err(err) => Err(Forbidden(err.to_string())),
+    }?;
+
+    Ok(Json(data))
+}
+
 #[get("/products/<ean>/add-alias/<alias>", format = "application/json")]
 async fn web_product_alias_add(cookies: &CookieJar<'_>, ean: u64, alias: u64) -> Result<Json<u64>, Forbidden<String>> {
     let session = match get_session(cookies).await {
@@ -1292,6 +1343,14 @@ async fn web_product_alias_add(cookies: &CookieJar<'_>, ean: u64, alias: u64) ->
     Ok(Json(alias))
 }
 
+#[get("/products/<ean>/metadata-get")]
+async fn web_product_metadata_get(_cookies: &CookieJar<'_>, ean: u64) -> Result<Json<ProductMetadata>, Forbidden<String>> {
+    match product_metadata_get(ean).await {
+        Ok(metadata) => Ok(Json(metadata)),
+        Err(err) => Err(Forbidden(err.to_string())),
+    }
+}
+
 #[post("/products/<ean>/metadata-set", format = "application/json", data = "<metadata>")]
 async fn web_product_metadata_set(cookies: &CookieJar<'_>, ean: u64, metadata: Json<ProductMetadata>) -> Result<Json<()>, Forbidden<String>> {
     let session = match get_session(cookies).await {
@@ -1306,7 +1365,7 @@ async fn web_product_metadata_set(cookies: &CookieJar<'_>, ean: u64, metadata: J
     let metadata = metadata.into_inner();
 
     match product_metadata_set(ean, metadata).await {
-        Err(error) => { return Err(Forbidden(error.to_string())); }, // TODO
+        Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(_) => {},
     };
 
@@ -2013,7 +2072,7 @@ fn rocket() -> _ {
     rocket::custom(figment)
         .register("/", catchers![not_found])
         .mount("/static", rocket::fs::FileServer::from(staticpath))
-        .mount("/", routes![login, logout, index, products, product_new, product_details, product_details_json, web_product_deprecate, web_product_add_prices, web_product_restock, web_product_alias_add, web_product_metadata_set, product_bestbefore, product_inventory, product_inventory_apply, aliases, suppliers, web_suppliers_new, cashbox, cashbox_state, cashbox_history_json, cashbox_update, cashbox_details, users, user_info, user_barcode, user_sound_theme_set, user_password_set, user_toggle_auth, user_invoice, user_invoice_full, user_stats, user_import, user_import_upload, user_import_apply, user_import_pgp, user_import_pgp_upload])
+        .mount("/", routes![login, logout, index, products, product_new, product_details, product_restock, product_search_json, product_details_json, web_product_deprecate, web_product_add_prices, web_product_restock, web_product_last_restock, web_product_alias_add, web_product_metadata_get, web_product_metadata_set, product_bestbefore, product_inventory, product_inventory_apply, aliases, suppliers, web_suppliers_new, cashbox, cashbox_state, cashbox_history_json, cashbox_update, cashbox_details, users, user_info, user_barcode, user_sound_theme_set, user_password_set, user_toggle_auth, user_invoice, user_invoice_full, user_stats, user_import, user_import_upload, user_import_apply, user_import_pgp, user_import_pgp_upload])
         .attach(Template::custom(|engines| {
             engines.tera.register_filter("cent2euro", cent2euro);
             engines.tera.register_filter("gendericon", gendericon);
