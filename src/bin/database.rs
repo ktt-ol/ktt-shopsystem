@@ -79,7 +79,7 @@ struct PriceEntry {
 struct RestockEntry {
 	timestamp: i64,
 	amount: i32,
-	price: String,
+	price: i32,
 	supplier: i32,
 	best_before_date: i64,
 }
@@ -376,11 +376,10 @@ impl Database {
         let mut rows = statement.query([product])?;
 
         while let Some(row) = rows.next()? {
-            let price: i32 = row.get(2)?;
             result.push(RestockEntry {
                 timestamp: row.get(0)?,
                 amount: row.get(1)?,
-                price: format!("{}", price),
+                price: row.get(2)?,
                 supplier: row.get(3).unwrap_or(0),
                 best_before_date: row.get(4).unwrap_or(0),
             });

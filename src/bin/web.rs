@@ -314,7 +314,7 @@ pub struct CashboxUpdate {
 pub struct RestockEntryLegacy {
 	timestamp: i64,
 	amount: i32,
-	price: String,
+	price: i32,
 	supplier: i32,
 	best_before_date: i64,
 }
@@ -1171,7 +1171,7 @@ async fn product_details(cookies: &CookieJar<'_>, ean: u64) -> Result<Template, 
         restock.push(RestockEntryNamedSupplier {
             timestamp: entry.timestamp,
             amount: entry.amount as u32,
-            price: parse_price(&entry.price).unwrap() as u32,
+            price: entry.price as u32,
             supplier: supplierinfo.name,
             best_before_date: entry.best_before_date,
         });
