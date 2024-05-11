@@ -78,8 +78,8 @@ struct PriceEntry {
 #[derive(Deserialize,Serialize, zbus::zvariant::Type)]
 struct RestockEntry {
 	timestamp: i64,
-	amount: i32,
-	price: i32,
+	amount: u32,
+	price: u32,
 	supplier: i32,
 	best_before_date: i64,
 }
@@ -1045,7 +1045,7 @@ impl Database {
             }
 
 			for restock in self.get_restocks(pid, true)? {
-				if restock.amount > amount {
+				if (restock.amount as i32) > amount {
 					bbdlist.push(BestBeforeEntry {
                         ean: pid,
                         name: product.name.clone(),
@@ -1056,12 +1056,12 @@ impl Database {
 					bbdlist.push(BestBeforeEntry {
                         ean: pid,
                         name: product.name.clone(),
-                        amount: restock.amount,
+                        amount: restock.amount as i32,
                         best_before_date: restock.best_before_date,
                     });
 				}
 
-				amount -= restock.amount;
+				amount -= restock.amount as i32;
 				if amount <= 0 {
 					break;
                 }

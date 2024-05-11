@@ -311,15 +311,6 @@ pub struct CashboxUpdate {
 }
 
 #[derive(Type, Deserialize, Serialize)]
-pub struct RestockEntryLegacy {
-	timestamp: i64,
-	amount: i32,
-	price: i32,
-	supplier: i32,
-	best_before_date: i64,
-}
-
-#[derive(Type, Deserialize, Serialize)]
 pub struct ProductMetadata {
     product_size: u32,
     product_size_is_weight: bool,
@@ -514,7 +505,7 @@ trait ShopDB {
     async fn product_deprecate(&self, ean: u64, deprecated: bool) -> zbus::Result<()>;
     async fn product_metadata_get(&self, ean: u64) -> zbus::Result<ProductMetadata>;
     async fn product_metadata_set(&self, ean: u64, metadata: ProductMetadata) -> zbus::Result<()>;
-    async fn get_restocks(&self, ean: u64, descending: bool) -> zbus::Result<Vec<RestockEntryLegacy>>;
+    async fn get_restocks(&self, ean: u64, descending: bool) -> zbus::Result<Vec<RestockEntry>>;
     async fn bestbeforelist(&self) -> zbus::Result<Vec<BestBeforeEntry>>;
     async fn get_supplier_list(&self) -> zbus::Result<Vec<Supplier>>;
     async fn add_supplier(&self, name: &str, postal_code: &str, city: &str, street: &str, phone: &str, website: &str) -> zbus::Result<()>;
@@ -701,7 +692,7 @@ async fn new_price(product: u64, timestamp: i64, memberprice: i32, guestprice: i
     proxy.new_price(product, timestamp, memberprice, guestprice).await
 }
 
-async fn get_restocks(ean: u64, descending: bool) -> zbus::Result<Vec<RestockEntryLegacy>> {
+async fn get_restocks(ean: u64, descending: bool) -> zbus::Result<Vec<RestockEntry>> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.get_restocks(ean, descending).await
@@ -1161,17 +1152,17 @@ async fn product_details(cookies: &CookieJar<'_>, ean: u64) -> Result<Template, 
     let amount = get_product_amount(ean).await?;
     let deprecated = get_product_deprecated(ean).await?;
     let prices = get_prices(ean).await?;
-    let legacyrestock = get_restocks(ean, false).await?;
+    let rawrestock = get_restocks(ean, false).await?;
     let metadata = product_metadata_get(ean).await.ok().unwrap_or_default();
 
     let mut restock = Vec::new();
-    for entry in legacyrestock {
+    for entry in rawrestock {
         let supplierinfo = get_supplier(entry.supplier).await?;
 
         restock.push(RestockEntryNamedSupplier {
             timestamp: entry.timestamp,
-            amount: entry.amount as u32,
-            price: entry.price as u32,
+            amount: entry.amount,
+            price: entry.price,
             supplier: supplierinfo.name,
             best_before_date: entry.best_before_date,
         });
