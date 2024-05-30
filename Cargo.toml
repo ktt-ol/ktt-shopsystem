@@ -10,7 +10,7 @@ description = "KtT Shopsystem"
 readme = "README.md"
 
 [dependencies]
-rocket = { version = "0.5.0", features = ["json"] }
+rocket = { version = "0.5.1", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
 rocket_dyn_templates = { version = "0.1.0", features = ["tera"] }
 serde = { version = "1.0" }
@@ -30,7 +30,7 @@ pango = { version = "0.19" }
 pangocairo = { version = "0.19" }
 gio = { version = "0.19" }
 regex = { version = "1.10" }
-librsvg = { version = "2.58.0" }
+librsvg = { version = "2.58.1" }
 lettre = { version = "0.11", default-features = false, features = ["builder", "hostname", "smtp-transport", "tokio1", "rustls-tls", "tokio1-rustls-tls"] }
 clap = { version = "4", features = ["derive"] }
 gpgme = { version = "0.11" }
