@@ -25,7 +25,7 @@
 							<div class="dropdown row">
 								<div class="input-group dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 									<span class="input-group-text"><i class="bi bi-search"></i></span>
-									<input type="search" id="newproduct" name="newproduct" placeholder="EAN or Name" class="form-control" oninput="search_product(this.value)" onclick="newproduct_input_clicked()" autocomplete="off">
+									<input type="search" id="newproduct" name="newproduct" placeholder="EAN or Name" class="form-control" oninput="search_product(this.value)" onclick="newproduct_input_clicked()" autocomplete="off" autofocus>
 								</div>
 								<ul id="productsearchdropdown" class="dropdown-menu" aria-labelledby="newproduct">
 								</ul>
@@ -71,6 +71,8 @@
 
 	<script type="text/javascript">
 		var product = null;
+		var searchinprogress = false;
+		var searchquery = "";
 
 		var set_addproduct_button_state = function(state) {
 			if (state) {
@@ -84,9 +86,13 @@
 			$.getJSON("/products/"+ ean +"/json", function(data) {
 				product = data;
 				set_addproduct_button_state(product);
+				if (searchquery == ean)
+					searchinprogress = false;
 			}).fail(function() {
 				product = null;
 				set_addproduct_button_state(product);
+				if (searchquery == ean)
+					searchinprogress = false;
 			});
 		};
 
@@ -113,7 +119,10 @@
 		};
 
 		var search_product = function(query) {
+			searchquery = query;
+
 			if ($.isNumeric(query) && (query.length == 13 || query.length == 8)) {
+				searchinprogress = true;
 				get_product_info_by_ean(query);
 			} else if (query.length >= 5)
 				search_products_by_name(query);
@@ -183,6 +192,20 @@
 		}
 
 		var add_product = function() {
+			/* possibly missing call to oninput when data input happens quickly */
+			var inputval = $("#newproduct").val();
+			if (searchquery != inputval) {
+				search_product(inputval);
+				setTimeout(() => { add_product(); }, 100);
+				return;
+			}
+
+			/* async JSON request for product information is still in progress */
+			if (searchinprogress) {
+				setTimeout(() => { add_product(); }, 100);
+				return;
+			}
+
 			if (product === null) {
 				show_error_dialog("Unknown/Invalid EAN");
 				$("#addproduct").attr('disabled', 'disabled');

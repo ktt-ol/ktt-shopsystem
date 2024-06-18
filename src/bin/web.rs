@@ -1124,6 +1124,8 @@ async fn product_inventory_apply(cookies: &CookieJar<'_>, data: Json<InventoryDa
 
 #[get("/products/<ean>/json", rank=1)]
 async fn product_details_json(ean: u64) -> Result<Json<ProductDetails>, WebShopError> {
+    let ean = ean_alias_get(ean).await?;
+
     Ok(Json(ProductDetails {
         ean: ean,
         name: get_product_name(ean).await?,

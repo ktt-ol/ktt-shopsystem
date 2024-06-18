@@ -13,6 +13,7 @@
             <li><a class="dropdown-item" href="/products/">List</a></li>
             <li><a class="dropdown-item" href="/products/bestbefore">Best before dates</a></li>
 			{% if session.auth_products %}
+            <li><a class="dropdown-item" href="/products/restock">Restock</a></li>
             <li><a class="dropdown-item" href="/products/inventory">Start inventory</a></li>
 			{% endif %}
           </ul>
