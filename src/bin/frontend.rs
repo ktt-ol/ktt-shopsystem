@@ -622,11 +622,11 @@ impl ShopState {
                 },
                 ShopInstruction::InvalidCode39Checksum => {
                     self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: "Code39 checksum invalid".to_string()});
-                    let _ = play_system("error.ogg").await;
+                    let _ = play_system("error.opus").await;
                 },
                 ShopInstruction::BrokenUserID => {
                     self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: "Missing or invalid user ID".to_string()});
-                    let _ = play_system("error.ogg").await;
+                    let _ = play_system("error.opus").await;
                 },
                 ShopInstruction::Login => {
                     self.execute( ShopCommand { instruction: ShopInstruction::Logout, userid: None, productid: None, rfiddata: None } ).await;
@@ -692,15 +692,15 @@ impl ShopState {
             match cmd.instruction {
                 ShopInstruction::Invalid => {
                     self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: "Invalid command".to_string()});
-                    let _ = play_system("error.ogg").await;
+                    let _ = play_system("error.opus").await;
                 },
                 ShopInstruction::InvalidCode39Checksum => {
                     self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: "Code39 checksum invalid".to_string()});
-                    let _ = play_system("error.ogg").await;
+                    let _ = play_system("error.opus").await;
                 },
                 ShopInstruction::BrokenUserID => {
                     self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: "Missing or invalid user ID".to_string()});
-                    let _ = play_system("error.ogg").await;
+                    let _ = play_system("error.opus").await;
                 },
                 ShopInstruction::Login => {
                     let userid = cmd.userid.unwrap();
@@ -716,17 +716,17 @@ impl ShopState {
                         },
                         Err(_error) => {
                             self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: format!("User ID {} does not (yet) exist", userid)});
-                            let _ = play_system("error.ogg").await;
+                            let _ = play_system("error.opus").await;
                         }
                     }
                 },
                 ShopInstruction::Logout => {
                     self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: "No active session".to_string()});
-                    let _ = play_system("error.ogg").await;
+                    let _ = play_system("error.opus").await;
                 },
                 ShopInstruction::Revert => {
                     self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: "No active session".to_string()});
-                    let _ = play_system("error.ogg").await;
+                    let _ = play_system("error.opus").await;
                 },
                 ShopInstruction::EAN => {
                     let productid = cmd.productid.unwrap();
@@ -734,11 +734,11 @@ impl ShopState {
                     match product {
                         Ok(product) => {
                             self.logdata.push(LogEntry{time: time, logtype: LogType::Warning, msg: format!("Price Info: {} - Member {} Guest {}", product.name, price2str(product.price), price2str(product.guest_price))});
-                            let _ = play_system("error.ogg").await;
+                            let _ = play_system("error.opus").await;
                         },
                         Err(_error) => {
                             self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: format!("Unknown product: {}", productid)});
-                            let _ = play_system("error.ogg").await;
+                            let _ = play_system("error.opus").await;
                         }
                     }
                 },
@@ -749,7 +749,7 @@ impl ShopState {
                     match userid {
                         None => {
                             self.logdata.push(LogEntry{time: time, logtype: LogType::Error, msg: format!("Unknown RFID token")});
-                            let _ = play_system("error.ogg").await;
+                            let _ = play_system("error.opus").await;
                         },
                         Some(userid) => {
                             self.execute(ShopCommand { instruction: ShopInstruction::Login, userid: Some(userid), productid: None, rfiddata: None } ).await;
@@ -779,7 +779,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut draw_dots = true;
     let mut last_date = chrono::Local::now();
 
-    let _ = play_system("startup.ogg").await;
+    let _ = play_system("startup.opus").await;
 
     state.logdata.push(LogEntry{time: chrono::Local::now(), logtype: LogType::Info, msg: "System started up".to_string()});
 
@@ -807,7 +807,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    let _ = play_system("shutdown.ogg").await;
+    let _ = play_system("shutdown.opus").await;
 
     execute!(
         terminal.backend_mut(),
