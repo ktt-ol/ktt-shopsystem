@@ -124,20 +124,20 @@
 	</div>
 
 	<script type="text/javascript">
-	var prices_append = function(data) {
+	var prices_prepend = function(data) {
 		valid_since = ts2isotime(data['timestamp']);
 		memberprice = cent2euro(data['memberprice']);
 		guestprice = cent2euro(data['guestprice']);
-		$('#pricehistorytable > tbody:last-child').append('<tr><td>'+valid_since+'</td><td>'+memberprice+' €</td><td>'+guestprice+' €</td></tr>');
+		$('#pricehistorytable > tbody').prepend('<tr><td>'+valid_since+'</td><td>'+memberprice+' €</td><td>'+guestprice+' €</td></tr>');
 	}
 
-	var restock_append = function(data) {
+	var restock_prepend = function(data) {
 		date = ts2isotime(data['timestamp']);
 		amount = data['amount'];
 		price = cent2euro(data['price']);
 		supplier = data['supplier'];
 		bestbefore = ts2isotime(data['best_before_date']);
-		$('#restocktable > tbody:last-child').append('<tr><td>'+date+'</td><td>'+amount+'</td><td>'+price+' €</td><td>'+supplier+'</td><td>'+bestbefore+'</td></tr>');
+		$('#restocktable > tbody').prepend('<tr><td>'+date+'</td><td>'+amount+'</td><td>'+price+' €</td><td>'+supplier+'</td><td>'+bestbefore+'</td></tr>');
 		var req = $.getJSON(
 			"/products/{{ ean }}/json",
 			function( data ) { $('#productamount').html(data['amount']); }
@@ -185,7 +185,7 @@
 			var req = $.postJSON(
 				"/products/{{ ean }}/add-prices",
 				requestdata,
-				function( data ) { prices_append(data); }
+				function( data ) { prices_prepend(data); }
 			);
 		}
 	}
@@ -202,7 +202,7 @@
 			var req = $.postJSON(
 				"/products/{{ ean }}/restock",
 				requestdata,
-				function( data ) { restock_append(data); }
+				function( data ) { restock_prepend(data); }
 			);
 		}
 	}
