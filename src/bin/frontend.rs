@@ -230,7 +230,7 @@ fn ui(f: &mut Frame, draw_dots: bool, logdata: &Vec<LogEntry>) {
                 Constraint::Min(5),
             ].as_ref()
         )
-        .split(f.size());
+        .split(f.area());
     let hsplit = Layout::default()
         .direction(Direction::Horizontal)
         .constraints(
