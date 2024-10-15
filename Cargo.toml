@@ -25,12 +25,12 @@ r2d2_sqlite = { version = "0.25", features = ["bundled"] }
 r2d2 = { version = "0.8.10" }
 sha2 = { version = "0.10" }
 hex = { version = "0.4" }
-cairo-rs = { version = "0.19" , features = ["pdf"] }
-pango = { version = "0.19" }
-pangocairo = { version = "0.19" }
-gio = { version = "0.19" }
-regex = { version = "1.10" }
-librsvg = { version = "2.58.3" }
+cairo-rs = { version = "0.20" , features = ["pdf"] }
+pango = { version = "0.20" }
+pangocairo = { version = "0.20" }
+gio = { version = "0.20" }
+regex = { version = "1.11" }
+librsvg = { version = "2.59" }
 lettre = { version = "0.11", default-features = false, features = ["builder", "hostname", "smtp-transport", "tokio1", "rustls-tls", "tokio1-rustls-tls"] }
 clap = { version = "4", features = ["derive"] }
 gpgme = { version = "0.11" }
@@ -40,7 +40,7 @@ crossterm = { version = "0.28" }
 async-recursion = { version = "1.1" }
 textwrap = { version = "0.16" }
 barcoders = { version = "2.0", features = ["svg"] }
-unicode-segmentation = { version = "1.11.0" }
+unicode-segmentation = { version = "1.12.0" }
 
 [package.metadata.deb]
 maintainer = "Sebastian Reichel <sre@mainframe.io>"
