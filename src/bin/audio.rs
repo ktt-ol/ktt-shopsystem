@@ -14,7 +14,7 @@
  */
 
 use std::{error::Error, future::pending};
-use zbus::{ConnectionBuilder, SignalContext, interface};
+use zbus::{connection, object_server::SignalEmitter, interface};
 use rand::Rng;
 use configparser::ini::Ini;
 use gstreamer::prelude::*;
@@ -78,7 +78,7 @@ impl AudioPlayer {
     }
 
     #[zbus(signal)]
-    async fn end_of_stream(ctxt: &SignalContext<'_>) -> zbus::Result<()>;
+    async fn end_of_stream(ctxt: &SignalEmitter<'_>) -> zbus::Result<()>;
 }
 
 #[tokio::main]
@@ -100,7 +100,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         player: player,
     };
 
-    let connection = ConnectionBuilder::system()?
+    let connection = connection::Builder::system()?
         .name("io.mainframe.shopsystem.AudioPlayer")?
         .serve_at("/io/mainframe/shopsystem/audio", audio)?
         .build()
@@ -116,7 +116,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         match msg.view() {
             MessageView::Eos(..) => {
                 let runtime = tokio::runtime::Runtime::new().unwrap();
-                match runtime.block_on(AudioPlayer::end_of_stream(iface_ref.signal_context())) {
+                match runtime.block_on(AudioPlayer::end_of_stream(iface_ref.signal_emitter())) {
                     Ok(x) => x,
                     Err(_) => println!("Listener failure"),
                 };

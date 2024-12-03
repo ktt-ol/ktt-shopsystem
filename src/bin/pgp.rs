@@ -148,7 +148,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     gpgme::init();
     let pgp = PGP { keyring: keyring };
 
-    let _connection = zbus::ConnectionBuilder::system()?
+    let _connection = zbus::connection::Builder::system()?
         .name("io.mainframe.shopsystem.PGP")?
         .serve_at("/io/mainframe/shopsystem/pgp", pgp)?
         .build()

@@ -14,7 +14,7 @@
  */
 
 use std::{error::Error, future::pending};
-use zbus::{Connection, ConnectionBuilder, interface, DBusError};
+use zbus::{Connection, connection, interface, DBusError};
 use serde::{Serialize, Deserialize};
 use lettre::transport::smtp::authentication::Credentials;
 use std::collections::HashSet;
@@ -409,7 +409,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         mailconnection: Connection::system().await?,
     };
 
-    let _connection = ConnectionBuilder::system()?
+    let _connection = connection::Builder::system()?
         .name("io.mainframe.shopsystem.Mailer")?
         .serve_at("/io/mainframe/shopsystem/mailer", mailer)?
         .build()

@@ -14,7 +14,7 @@
  */
 
 use std::{error::Error, future::pending};
-use zbus::{ConnectionBuilder, DBusError, interface, zvariant};
+use zbus::{connection, DBusError, interface, zvariant};
 use serde::{Serialize, Deserialize};
 use chrono::prelude::*;
 use chrono::Datelike;
@@ -807,7 +807,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let pdf = PDFInvoice { renderer: renderer };
 
-    let _connection = ConnectionBuilder::system()?
+    let _connection = connection::Builder::system()?
         .name("io.mainframe.shopsystem.InvoicePDF")?
         .serve_at("/io/mainframe/shopsystem/invoicepdf", pdf)?
         .build()

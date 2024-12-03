@@ -13,7 +13,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 use std::{error::Error, future::pending};
-use zbus::{ConnectionBuilder, DBusError, interface};
+use zbus::{connection, DBusError, interface};
 use std::collections::HashMap;
 use r2d2_sqlite::SqliteConnectionManager;
 use serde::{Serialize, Deserialize};
@@ -1128,7 +1128,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         pool: pool,
     };
 
-    let _connection = ConnectionBuilder::system()?
+    let _connection = connection::Builder::system()?
         .name("io.mainframe.shopsystem.Database")?
         .serve_at("/io/mainframe/shopsystem/database", db)?
         .build()
