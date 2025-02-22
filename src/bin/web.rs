@@ -25,7 +25,7 @@ use rocket::http::{Cookie, CookieJar};
 use std::{collections::HashMap, hash::BuildHasher};
 use zbus;
 use zbus::{Connection, proxy, zvariant::Type};
-use rand::{Rng, distributions::Alphanumeric};
+use rand::{Rng, distr::Alphanumeric};
 use chrono;
 use chrono::prelude::*;
 use std::num::ParseIntError;
@@ -940,7 +940,7 @@ async fn get_session(cookies: &CookieJar<'_>) -> zbus::Result<Session> {
 }
 
 fn generate_session_id() -> String {
-    rand::thread_rng()
+    rand::rng()
         .sample_iter(&Alphanumeric)
         .take(19)
         .map(char::from)
