@@ -20,8 +20,6 @@ use chrono::{Datelike, offset::TimeZone, prelude::*};
 use unicode_segmentation::UnicodeSegmentation;
 use configparser::ini::Ini;
 
-static DAY_IN_SECONDS: i64 = 60*60*24;
-
 #[derive(Debug)]
 enum InvoicerError {
     DBusError(String),
@@ -262,23 +260,27 @@ struct Invoicer {
 impl Invoicer {
 
 	async fn send_invoices(&self, temporary: bool, timestamp: i64, limit_to_user: Option<i32>) -> Result<(), InvoicerError> {
-		let mut prevtimestamp = timestamp - DAY_IN_SECONDS;
-		let mut due_date_string = String::new();
+		let prevtimestamp;
+		let due_date_string;
 
         let dbus_connection = Connection::system().await?;
         let mailer = ShopMailerProxy::new(&dbus_connection).await?;
 
-		if !temporary {
-            let ts: chrono::DateTime<Utc> = chrono::DateTime::<Utc>::from_timestamp(timestamp, 0).expect("invalid timestamp");
-            let ts: chrono::DateTime<Local> = chrono::DateTime::from(ts);
-            let ts = ts - chrono::Months::new(1);
-            prevtimestamp = ts.timestamp();
+        let ts: chrono::DateTime<Utc> = chrono::DateTime::<Utc>::from_timestamp(timestamp, 0).expect("invalid timestamp");
+        let ts: chrono::DateTime<Local> = chrono::DateTime::from(ts);
 
-            let ts: chrono::DateTime<Utc> = chrono::DateTime::<Utc>::from_timestamp(timestamp, 0).expect("invalid timestamp");
-            let ts: chrono::DateTime<Local> = chrono::DateTime::from(ts);
-            let ts = ts + chrono::Days::new(10);
-            due_date_string = ts.format("%d.%m.%Y").to_string();
-		}
+		if !temporary {
+            let prevts = ts - chrono::Months::new(1);
+            prevtimestamp = prevts.timestamp();
+
+            let duets = ts + chrono::Days::new(10);
+            due_date_string = duets.format("%d.%m.%Y").to_string();
+		} else {
+            let prevts = ts - chrono::Days::new(1);
+            prevtimestamp = prevts.timestamp();
+
+		    due_date_string = String::new();
+        }
 
 		let ts = Self::get_timespan(temporary, prevtimestamp);
 		let tst = Self::get_timespan(false, prevtimestamp);
@@ -373,7 +375,10 @@ impl Invoicer {
 
 	async fn generate_invoice(&self, temporary: bool, timestamp: i64, userid: i32, invoiceid: &str) -> zbus::Result<InvoiceData> {
         let prevtimestamp = if temporary {
-            timestamp - DAY_IN_SECONDS
+            let ts: chrono::DateTime<Utc> = chrono::DateTime::<Utc>::from_timestamp(timestamp, 0).expect("invalid timestamp");
+            let ts: chrono::DateTime<Local> = chrono::DateTime::from(ts);
+            let ts = ts - chrono::Days::new(1);
+            ts.timestamp()
         } else {
             let ts: chrono::DateTime<Utc> = chrono::DateTime::<Utc>::from_timestamp(timestamp, 0).expect("invalid timestamp");
             let ts: chrono::DateTime<Local> = chrono::DateTime::from(ts);
