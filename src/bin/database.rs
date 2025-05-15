@@ -889,6 +889,16 @@ impl Database {
 
     fn user_disable(&mut self, user: i32, value: bool) -> Result<(), DatabaseError> {
         let query = "UPDATE users SET disabled = ? WHERE id = ?";
+        // revoke permissions for disabled accounts
+        if value == true {
+            self.set_user_auth(UserAuth {
+                id: user,
+                superuser: false,
+                auth_users: false,
+                auth_products: false,
+                auth_cashbox: false,
+            })?;
+        }
         let connection = self.pool.get()?;
         let mut statement = connection.prepare(query)?;
         let _inserted_row_count = statement.execute((value, user))?;
