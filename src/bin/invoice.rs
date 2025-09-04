@@ -319,39 +319,37 @@ impl Invoicer {
 		for userid in users {
 			number += 1;
 
-            /* required to generate the correct invoice ID */
-            if limit_to_user.is_some() {
-                if userid < limit_to_user.unwrap() {
-                    continue;
-                } else if userid > limit_to_user.unwrap() {
-                    break;
-                }
-            }
-
             let invoiceid = format!("SH{}5{:03}", start.format("%Y%m").to_string(), number);
 			let invoicedata = self.generate_invoice(temporary, timestamp, userid, &invoiceid).await?;
 			let userdata = get_user_info(userid).await?;
 			let total_sum = get_user_invoice_sum(userid, tst.from, tst.to).await?;
 
-            println!("{} ({} {})...", userdata.id, &userdata.firstname, &userdata.lastname);
+            /*
+             * Even when limited to one user we need to process all for two reasons:
+             *  1. The Invoice ID will incorrectly be 0001 otherwise
+             *  2. The CSV for the treasurer should always have all entries
+             */
+            if limit_to_user.is_none() || limit_to_user.unwrap() == userid {
+                println!("{} ({} {})...", userdata.id, &userdata.firstname, &userdata.lastname);
 
-			let mail_path = mailer.create_mail().await?;
-            let mail = ShopMailProxy::builder(&dbus_connection).path(mail_path.clone())?.build().await?;
-			mail.set_from(MailContact {name: sendername.clone(), email: self.mailfromaddress.clone()}).await?;
-			mail.set_subject(mailtitle.clone()).await?;
-            let recipientname = format!("{} {}", &userdata.firstname, &userdata.lastname);
-			mail.add_recipient(MailContact {name: recipientname, email: userdata.email.clone()}, RecipientType::To).await?;
+                let mail_path = mailer.create_mail().await?;
+                let mail = ShopMailProxy::builder(&dbus_connection).path(mail_path.clone())?.build().await?;
+                mail.set_from(MailContact {name: sendername.clone(), email: self.mailfromaddress.clone()}).await?;
+                mail.set_subject(mailtitle.clone()).await?;
+                let recipientname = format!("{} {}", &userdata.firstname, &userdata.lastname);
+                mail.add_recipient(MailContact {name: recipientname, email: userdata.email.clone()}, RecipientType::To).await?;
 
-			if !temporary {
-				mail.add_attachment(invoicedata.pdffilename.clone(), "application/pdf".to_string(), invoicedata.pdfdata.clone()).await?;
+                if !temporary {
+                    mail.add_attachment(invoicedata.pdffilename.clone(), "application/pdf".to_string(), invoicedata.pdfdata.clone()).await?;
+                    treasurer_mail.add_attachment(invoicedata.pdffilename, "application/pdf".to_string(), invoicedata.pdfdata).await?;
+                }
+
+                mail.set_main_part(invoicedata.plain, MessageType::Plain).await?;
+                mail.set_main_part(invoicedata.html, MessageType::Html).await?;
+                mailer.send_mail(mail_path.clone()).await?;
             }
 
-			mail.set_main_part(invoicedata.plain, MessageType::Plain).await?;
-			mail.set_main_part(invoicedata.html, MessageType::Html).await?;
-			mailer.send_mail(mail_path.clone()).await?;
-
 			if !temporary {
-				treasurer_mail.add_attachment(invoicedata.pdffilename, "application/pdf".to_string(), invoicedata.pdfdata).await?;
                 let tmp = format!("{0},{1},{2},{invoiceid},{total_sum}\n", userdata.id, userdata.lastname, userdata.firstname);
                 csvinvoicedata.push_str(&tmp);
 
