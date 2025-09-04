@@ -19,16 +19,16 @@ zbus = { version = "5", default-features = false, features = ["tokio"] }
 rand = { version = "0.9" }
 chrono = { version = "0.4", features = ["serde"] }
 csv = { version = "1.3" }
-gstreamer = { version = "0.23" }
+gstreamer = { version = "0.24" }
 configparser = { version = "3.1" }
-r2d2_sqlite = { version = "0.30", features = ["bundled"] }
+r2d2_sqlite = { version = "0.31", features = ["bundled"] }
 r2d2 = { version = "0.8.10" }
 sha2 = { version = "0.10" }
 hex = { version = "0.4" }
-cairo-rs = { version = "0.20" , features = ["pdf"] }
-pango = { version = "0.20" }
-pangocairo = { version = "0.20" }
-gio = { version = "0.20" }
+cairo-rs = { version = "0.21" , features = ["pdf"] }
+pango = { version = "0.21" }
+pangocairo = { version = "0.21" }
+gio = { version = "0.21" }
 regex = { version = "1.11" }
 librsvg = { version = "2.60" }
 lettre = { version = "0.11", default-features = false, features = ["builder", "hostname", "smtp-transport", "tokio1", "rustls-tls", "tokio1-rustls-tls"] }
