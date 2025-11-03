@@ -1,0 +1,185 @@
+{% extends "base" %}
+{% block title %}Order Suggestion{% endblock title %}
+{% block content %}
+	<div class="container">
+		<h2>Order Suggestion for {{supplier_name}}</h2>
+
+		<p>
+          This page can be used to figure out how much items should be bought.
+          Note, that the difference might not be a good number, if a product was sold-out in the selected time period.
+		</p>
+
+        <form class="">
+          <div class="mb-3">
+            <label for="restockdates" class="form-label">Last restock dates</label>
+            <select class="form-select" id="restockdates" name="restock-dates" title="Restock Dates" onchange="update_table();" onfocus="this.selectedIndex = -1;">
+            </select>
+          </div>
+        </form>
+
+        <table id="producttable" class="table table-bordered table-striped table-hover hidden">
+            <thead>
+                <tr>
+                    <th scope="col">EAN</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Current Amount (container)</th>
+                    <th scope="col">Sales since selected date (container)</th>
+                    <th scope="col">Difference (container)</th>
+                </tr>
+            </thead>
+            <tbody class="table-group-divider">
+            </tbody>
+        </table>
+	</div>
+
+	<script type="text/javascript">
+      var update_product_cell = function(ean, cell, val, container_size) {
+        if(container_size !== null && container_size !== NaN && container_size !== 0) {
+          $('#row_' + ean + ' > td:eq('+cell+')').html(val + ' (' + (val / container_size).toFixed(1) + ')');
+        } else {
+          $('#row_' + ean + ' > td:eq('+cell+')').html(val + ' (n/a)');
+        }
+      }
+
+      var update_product_row = function(ean) {
+        let product = productinfo[ean];
+
+        if (product.amount === null) {
+          $('#row_' + ean + ' > td:eq(2)').html('loading...');
+          $('#row_' + ean + ' > td:eq(3)').html('loading...');
+          $('#row_' + ean + ' > td:eq(4)').html('loading...');
+          return;
+        }
+
+        update_product_cell(ean, 2, product.amount, product.container_size);
+
+        if (product.sales === null) {
+          $('#row_' + ean + ' > td:eq(3)').html('loading...');
+          $('#row_' + ean + ' > td:eq(4)').html('loading...');
+          return;
+        }
+
+        update_product_cell(ean, 3, product.sales, product.container_size);
+
+        let amount = product.amount
+        if (amount < 0)
+          amount = 0
+        let diff = product.sales-product.amount
+        if (diff < 0)
+          diff = 0
+        update_product_cell(ean, 4, diff, product.container_size);
+      }
+
+      var load_amount_data = function(ean) {
+        $.getJSON("/products/"+ ean +"/amount", function(data) {
+          productinfo[ean].amount = data[0];
+          productinfo[ean].container_size = data[1];
+          update_product_row(ean);
+        }).fail(function() {
+          console.log("failed to load amount for ean " + ean)
+          productinfo[ean].amount = null;
+          productinfo[ean].container_size = null;
+          update_product_row(ean);
+        });
+      }
+
+      var add_product = function(product) {
+          let row = '<tr id="row_'+product.ean+'">';
+          row += '<td><a href="/products/'+product.ean+'">'+product.ean+'</a></td>';
+          row += '<td><a href="/products/'+product.ean+'">'+product.name+'</a></td>';
+          row += '<td>loading...</td>';
+          row += '<td>loading...</td>';
+          row += '<td>loading...</td>';
+          row += '</tr>';
+          $('#producttable > tbody').append(row);
+          load_amount_data(product.ean);
+      }
+
+      var add_restock_date = function(restock_date) {
+        let ts = new Date(restock_date * 1000)
+        let now = Date.now()
+        let diff = Math.abs(now - ts);
+        diff = Math.round(diff / 1000 / 3600 / 24);
+        if(diff > 21)
+          diff = Math.round(diff / 7) + " weeks ago"
+        else
+          diff = diff + " days ago"
+        let readable = ts.toISOString().slice(0,10);
+        let entry = '<option value="'+restock_date+'">';
+        entry += readable + " (" + diff + ")";
+        entry += '</option>';
+        $('#restockdates').append(entry);
+      }
+
+      var get_restock_dates = function(supplier) {
+        $.getJSON("/suppliers/"+ supplier +"/restock-dates", function(data) {
+          restock_dates = data;
+          $('#restockdates').empty();
+          restock_dates.forEach((event) => add_restock_date(event));
+          update_table();
+        }).fail(function() {
+          restock_dates = null;
+          $('#restockdates').empty();
+        });
+      };
+
+      var get_products = function(supplier) {
+        $.getJSON("/suppliers/"+ supplier +"/product-list", function(data) {
+
+        productinfo = data.reduce(function(map, product) {
+            map[product.ean] = {
+              ean: product.ean,
+              name: product.name,
+              amount: null,
+              sales: null,
+              container_size: null,
+            };
+            return map;
+        }, {});
+
+          products = data;
+          $('#producttable > tbody').empty();
+          products.forEach((product) => add_product(product));
+          update_table();
+        }).fail(function() {
+          productinfo = {};
+          $('#producttable > tbody').empty();
+        });
+      };
+
+      var update_product_sales_info = function(ean, timestamp) {
+        $.getJSON("/products/"+ ean +"/sales-info?timestamp=" + timestamp, function(data) {
+          productinfo[ean].sales = data;
+          update_product_row(ean);
+        }).fail(function() {
+          productinfo[ean].sales = null;
+          console.log("failed to get sales info for " + ean + " with ts " + timestamp);
+        });
+      };
+
+      var clear_sales_data = function() {
+        Object.entries(productinfo).forEach((product) => {
+          let ean=product[0];
+          productinfo[ean].sales = null;
+          update_product_row(ean);
+        });
+      }
+
+      var update_table = function() {
+        if(typeof products !== 'undefined' && typeof restock_dates !== 'undefined') {
+          if(products !== null && restock_dates !== null) {
+            clear_sales_data();
+            let ts = $('#restockdates').find(":selected").val();
+            if(typeof ts !== 'undefined') {
+              products.forEach((product) => update_product_sales_info(product.ean, ts));
+            }
+          }
+        }
+      };
+
+      window.onload = function on_load() {
+        get_restock_dates({{supplier}});
+        get_products({{supplier}});
+      };
+	</script>
+{% endblock content %}

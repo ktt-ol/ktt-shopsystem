@@ -16,6 +16,7 @@ use std::{error::Error, future::pending};
 use zbus::{connection, DBusError, interface};
 use std::collections::HashMap;
 use r2d2_sqlite::SqliteConnectionManager;
+use r2d2_sqlite::rusqlite::OptionalExtension;
 use serde::{Serialize, Deserialize};
 use sha2::{Sha256, Digest};
 use hex::ToHex;
@@ -54,6 +55,12 @@ struct DetailedProduct {
 	amount: i32,
 	memberprice: i32,
 	guestprice: i32,
+}
+
+#[derive(Deserialize,Serialize, zbus::zvariant::Type)]
+struct ProductInfo {
+	ean: u64,
+	name: String,
 }
 
 #[derive(Deserialize,Serialize, zbus::zvariant::Type)]
@@ -362,6 +369,16 @@ impl Database {
         Ok(result)
 	}
 
+	fn get_product_sales_info(&mut self, ean: u64, since: i64) -> Result<u32, DatabaseError> {
+        let query = "select COUNT(*) AS sold_items from sales where sales.product = ? and datetime(timestamp, 'unixepoch', 'localtime') > datetime(?, 'unixepoch', 'localtime')";
+        let ean = self.ean_alias_get(ean)?;
+        let connection = self.pool.get()?;
+        let mut statement = connection.prepare(query)?;
+
+        let result = statement.query_row((ean, since), |r| { Ok(r.get(0)?) })?;
+        Ok(result)
+	}
+
 	fn get_prices(&mut self, product: u64) -> Result<Vec<PriceEntry>, DatabaseError> {
 		let mut result = Vec::new();
         let query = "SELECT valid_from, memberprice, guestprice FROM prices WHERE product = ? ORDER BY valid_from ASC;";
@@ -466,6 +483,21 @@ impl Database {
         let mut statement = connection.prepare(query)?;
         let amount = statement.query_row([article], |r| r.get(0))?;
         Ok(amount)
+    }
+
+	fn get_product_amount_with_container_size(&mut self, article: u64) -> Result<(i32, u32), DatabaseError> {
+        let amount = self.get_product_amount(article)?;
+
+        let query = "SELECT container_size FROM product_metadata WHERE product = ?";
+        let connection = self.pool.get()?;
+        let mut statement = connection.prepare(query)?;
+
+        let container_size = match statement.query_one([article], |row| row.get(0)).optional()? {
+            Some(val) => val,
+            None => 0,
+        };
+
+        Ok((amount, container_size))
     }
 
 	fn get_product_deprecated(&mut self, article: u64) -> Result<bool, DatabaseError> {
@@ -596,6 +628,37 @@ impl Database {
                 phone: row.get(5).unwrap_or("".to_string()),
                 website: row.get(6).unwrap_or("".to_string()),
             });
+        }
+
+		Ok(result)
+	}
+
+	fn get_supplier_product_list(&mut self, supplier: i32) -> Result<Vec<ProductInfo>, DatabaseError> {
+		let mut result = Vec::new();
+        let query = "select products.id,products.name from restock,products where products.id = restock.product and supplier = ? and deprecated = false and strftime('%Y-%m-%d', timestamp, 'unixepoch', '+1 years') > strftime('%Y-%m-%d') group by products.id";
+        let connection = self.pool.get()?;
+        let mut statement = connection.prepare(query)?;
+        let mut rows = statement.query([supplier])?;
+
+        while let Some(row) = rows.next()? {
+            result.push(ProductInfo {
+                ean: row.get(0)?,
+                name: row.get(1)?,
+            });
+        }
+
+		Ok(result)
+	}
+
+	fn get_supplier_restock_dates(&mut self, supplier: i32) -> Result<Vec<i64>, DatabaseError> {
+		let mut result = Vec::new();
+        let query = "select unixepoch(strftime('%Y-%m-%d', timestamp, 'unixepoch', 'localtime')) from restock where supplier = ? group by strftime('%Y-%m-%d', timestamp, 'unixepoch', 'localtime') order by timestamp desc limit 10";
+        let connection = self.pool.get()?;
+        let mut statement = connection.prepare(query)?;
+        let mut rows = statement.query([supplier])?;
+
+        while let Some(row) = rows.next()? {
+            result.push(row.get(0)?);
         }
 
 		Ok(result)

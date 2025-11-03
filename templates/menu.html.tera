@@ -18,8 +18,12 @@
 			{% endif %}
           </ul>
         </li>
-        <li class="nav-item">
-          <a class="nav-link {% if page is starting_with("suppliers/") %}active{% endif %}" aria-current="page" href="/suppliers/">Suppliers</a>
+        <li class="nav-item dropdown">
+          <button class="btn btn-dark btn-link nav-link px-0 px-lg-2 dropdown-toggle d-flex align-items-center {% if page is starting_with("suppliers/") %}active{% endif %}" data-bs-toggle="dropdown" aria-expanded="false">Suppliers</button>
+          <ul class="dropdown-menu dropdown-menu-dark">
+            <li><a class="dropdown-item" href="/suppliers/">List</a></li>
+            <li><a class="dropdown-item" href="/suppliers/order-suggestion/">Order Suggestion</a></li>
+          </ul>
         </li>
         <li class="nav-item">
           <a class="nav-link {% if page is starting_with("aliases/") %}active{% endif %}" aria-current="page" href="/aliases/">Aliases</a>

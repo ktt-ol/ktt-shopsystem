@@ -265,6 +265,12 @@ pub struct StockItem {
 }
 
 #[derive(Type, Deserialize, Serialize)]
+pub struct ProductInfo {
+	ean: u64,
+	name: String,
+}
+
+#[derive(Type, Deserialize, Serialize)]
 pub struct DetailedProductInfo {
 	ean: u64,
     aliases: Vec<u64>,
@@ -500,6 +506,8 @@ trait ShopDB {
     async fn get_product_aliases(&self, ean: u64) -> zbus::Result<Vec<u64>>;
     async fn get_product_name(&self, ean: u64) -> zbus::Result<String>;
     async fn get_product_amount(&self, ean: u64) -> zbus::Result<i32>;
+    async fn get_product_amount_with_container_size(&self, ean: u64) -> zbus::Result<(i32, u32)>;
+	async fn get_product_sales_info(&self, ean: u64, since: i64) -> zbus::Result<u32>;
     async fn get_product_category(&self, ean: u64) -> zbus::Result<String>;
     async fn get_product_deprecated(&self, ean: u64) -> zbus::Result<bool>;
     async fn product_deprecate(&self, ean: u64, deprecated: bool) -> zbus::Result<()>;
@@ -510,6 +518,8 @@ trait ShopDB {
     async fn get_last_restock(&self, ean: u64) -> zbus::Result<RestockEntry>;
     async fn bestbeforelist(&self) -> zbus::Result<Vec<BestBeforeEntry>>;
     async fn get_supplier_list(&self) -> zbus::Result<Vec<Supplier>>;
+    async fn get_supplier_product_list(&self, id: i32) -> zbus::Result<Vec<ProductInfo>>;
+    async fn get_supplier_restock_dates(&self, id: i32) -> zbus::Result<Vec<i64>>;
     async fn add_supplier(&self, name: &str, postal_code: &str, city: &str, street: &str, phone: &str, website: &str) -> zbus::Result<()>;
     async fn get_supplier(&self, id: i32) -> zbus::Result<Supplier>;
     async fn ean_alias_list(&self) -> zbus::Result<Vec<EanAlias>>;
@@ -644,6 +654,18 @@ async fn get_product_amount(ean: u64) -> zbus::Result<i32> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.get_product_amount(ean).await
+}
+
+async fn get_product_amount_with_container_size(ean: u64) -> zbus::Result<(i32, u32)> {
+    let connection = Connection::system().await?;
+    let proxy = ShopDBProxy::new(&connection).await?;
+    proxy.get_product_amount_with_container_size(ean).await
+}
+
+async fn get_product_sales_info(ean: u64, since: i64) -> zbus::Result<u32> {
+    let connection = Connection::system().await?;
+    let proxy = ShopDBProxy::new(&connection).await?;
+    proxy.get_product_sales_info(ean, since).await
 }
 
 async fn get_product_category(ean: u64) -> zbus::Result<String> {
@@ -825,6 +847,18 @@ async fn get_supplier_list() -> zbus::Result<Vec<Supplier>> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.get_supplier_list().await
+}
+
+async fn get_supplier_product_list(id: i32) -> zbus::Result<Vec<ProductInfo>> {
+    let connection = Connection::system().await?;
+    let proxy = ShopDBProxy::new(&connection).await?;
+    proxy.get_supplier_product_list(id).await
+}
+
+async fn get_supplier_restock_dates(id: i32) -> zbus::Result<Vec<i64>> {
+    let connection = Connection::system().await?;
+    let proxy = ShopDBProxy::new(&connection).await?;
+    proxy.get_supplier_restock_dates(id).await
 }
 
 async fn get_member_ids() -> zbus::Result<Vec<i32>> {
@@ -1135,6 +1169,16 @@ async fn product_details_json(ean: u64) -> Result<Json<ProductDetails>, WebShopE
     }))
 }
 
+#[get("/products/<ean>/amount", rank=1)]
+async fn product_amount_json(ean: u64) -> Result<Json<(i32, u32)>, WebShopError> {
+    Ok(Json(get_product_amount_with_container_size(ean).await?))
+}
+
+#[get("/products/<ean>/sales-info?<timestamp>", rank=1)]
+async fn product_sales_info_json(ean: u64, timestamp: i64) -> Result<Json<u32>, WebShopError> {
+    Ok(Json(get_product_sales_info(ean, timestamp).await?))
+}
+
 #[get("/products/search/<search>", rank=2)]
 async fn product_search_json(search: &str) -> Result<Json<Vec<Product>>, WebShopError> {
     Ok(Json(products_search(search).await?))
@@ -1374,6 +1418,21 @@ async fn web_product_metadata_set(cookies: &CookieJar<'_>, ean: u64, metadata: J
     Ok(Json(()))
 }
 
+#[get("/suppliers/order-suggestion")]
+async fn web_product_order_suggestion_step1(cookies: &CookieJar<'_>) -> Result<Template, WebShopError> {
+    let session = get_session(cookies).await?;
+    let suppliers = get_supplier_list().await?;
+
+    Ok(Template::render("suppliers/order-suggestion-selection", context! { page: "suppliers/order-suggestion", session: session, suppliers: suppliers }))
+}
+
+#[get("/suppliers/<id>/order-suggestion")]
+async fn web_product_order_suggestion_step2(cookies: &CookieJar<'_>, id: i32) -> Result<Template, WebShopError> {
+    let session = get_session(cookies).await?;
+    let supplier_name = get_supplier(id).await?.name;
+
+    Ok(Template::render("suppliers/order-suggestion", context! { page: "suppliers/order-suggestion", session: session, supplier: id, supplier_name: supplier_name }))
+}
 
 #[get("/aliases")]
 async fn aliases(cookies: &CookieJar<'_>) -> Result<Template, WebShopError> {
@@ -1389,6 +1448,36 @@ async fn suppliers(cookies: &CookieJar<'_>) -> Result<Template, WebShopError> {
     let list = get_supplier_list().await?;
 
     Ok(Template::render("suppliers/index", context! { page: "suppliers/index", session: session, list: list }))
+}
+
+#[get("/suppliers/list", format = "application/json")]
+async fn supplier_json_list(_cookies: &CookieJar<'_>) -> Result<Json<Vec<Supplier>>, Forbidden<String>> {
+    let list = match get_supplier_list().await {
+        Err(error) => { return Err(Forbidden(error.to_string())); },
+        Ok(list) => list,
+    };
+
+    Ok(Json(list))
+}
+
+#[get("/suppliers/<id>/product-list", format = "application/json")]
+async fn supplier_json_product_list(_cookies: &CookieJar<'_>, id: i32) -> Result<Json<Vec<ProductInfo>>, Forbidden<String>> {
+    let list = match get_supplier_product_list(id).await {
+        Err(error) => { return Err(Forbidden(error.to_string())); },
+        Ok(list) => list,
+    };
+
+    Ok(Json(list))
+}
+
+#[get("/suppliers/<id>/restock-dates", format = "application/json")]
+async fn supplier_json_restock_dates(_cookies: &CookieJar<'_>, id: i32) -> Result<Json<Vec<i64>>, Forbidden<String>> {
+    let list = match get_supplier_restock_dates(id).await {
+        Err(error) => { return Err(Forbidden(error.to_string())); },
+        Ok(list) => list,
+    };
+
+    Ok(Json(list))
 }
 
 #[post("/suppliers/new", data = "<info>")]
@@ -2074,7 +2163,19 @@ fn rocket() -> _ {
     rocket::custom(figment)
         .register("/", catchers![not_found])
         .mount("/static", rocket::fs::FileServer::from(staticpath))
-        .mount("/", routes![login, logout, index, products, product_new, product_details, product_restock, product_search_json, product_details_json, web_product_deprecate, web_product_add_prices, web_product_restock, web_product_last_restock, web_product_alias_add, web_product_metadata_get, web_product_metadata_set, product_bestbefore, product_inventory, product_inventory_apply, aliases, suppliers, web_suppliers_new, cashbox, cashbox_state, cashbox_history_json, cashbox_update, cashbox_details, users, user_info, user_barcode, user_sound_theme_set, user_password_set, user_toggle_auth, user_invoice, user_invoice_full, user_stats, user_import, user_import_upload, user_import_apply, user_import_pgp, user_import_pgp_upload])
+        .mount("/", routes![login, logout, index, products, product_new, product_details,
+            product_restock, product_search_json, product_details_json, product_amount_json,
+            product_sales_info_json, web_product_deprecate, web_product_add_prices,
+            web_product_restock, web_product_last_restock, web_product_alias_add,
+            web_product_metadata_get, web_product_metadata_set,
+            web_product_order_suggestion_step1, web_product_order_suggestion_step2,
+            product_bestbefore, product_inventory, product_inventory_apply, aliases,
+            suppliers, web_suppliers_new, supplier_json_list, supplier_json_product_list,
+            supplier_json_restock_dates, cashbox, cashbox_state, cashbox_history_json,
+            cashbox_update, cashbox_details, users, user_info, user_barcode,
+            user_sound_theme_set, user_password_set, user_toggle_auth, user_invoice,
+            user_invoice_full, user_stats, user_import, user_import_upload,
+            user_import_apply, user_import_pgp, user_import_pgp_upload])
         .attach(Template::custom(|engines| {
             engines.tera.register_filter("cent2euro", cent2euro);
             engines.tera.register_filter("gendericon", gendericon);

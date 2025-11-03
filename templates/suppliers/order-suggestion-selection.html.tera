@@ -1,0 +1,30 @@
+{% extends "base" %}
+{% block title %}Order Suggestion{% endblock title %}
+{% block content %}
+	<div class="container">
+		<h2>Order Suggestion</h2>
+
+		<p>
+          This page can be used to figure out how much items should be bought.
+          It assumes that there is a dedicated supplier, which is used regularly.
+          After selecting the supplier you get a list with (non deprecated) products bought from that
+          supplier incl. current amount, last bought date, sales since then and the sales minus the current amount.
+          At least for drinks the last number is usually a reasonably good number for the next order.
+		</p>
+
+        <form class="">
+          <select class="form-select" id="supplier" name="supplier" title="Supplier" onchange="goto_step2();" onfocus="this.selectedIndex = -1;">
+            {% for supplier in suppliers %}
+              <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+            {% endfor %}
+          </select>
+        </form>
+	</div>
+
+	<script type="text/javascript">
+      var goto_step2 = function() {
+        let supplier = parseInt($("#supplier").val());
+        window.location.href = "/suppliers/"+supplier+"/order-suggestion";
+      }
+	</script>
+{% endblock content %}
