@@ -422,11 +422,11 @@ impl Database {
 		Ok(result)
 	}
 
-	fn get_last_restock(&mut self, product: u64) -> Result<RestockEntry, DatabaseError> {
-        let query = "SELECT timestamp, amount, price, supplier, best_before_date FROM restock WHERE product = ? ORDER BY timestamp DESC LIMIT 1;";
+	fn get_last_restock(&mut self, product: u64, min_price: u32) -> Result<RestockEntry, DatabaseError> {
+        let query = "SELECT timestamp, amount, price, supplier, best_before_date FROM restock WHERE product = ? AND price >= ? ORDER BY timestamp DESC LIMIT 1;";
         let connection = self.pool.get()?;
         let mut statement = connection.prepare(query)?;
-        let (timestamp, amount, price, supplier, bbd) = statement.query_row([product],
+        let (timestamp, amount, price, supplier, bbd) = statement.query_row((product, min_price),
             |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)))?;
 
         Ok(RestockEntry {

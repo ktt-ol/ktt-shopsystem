@@ -515,7 +515,7 @@ trait ShopDB {
     async fn product_metadata_set(&self, ean: u64, metadata: ProductMetadata) -> zbus::Result<()>;
     async fn products_search(&self, search_query: &str) -> zbus::Result<Vec<Product>>;
     async fn get_restocks(&self, ean: u64, descending: bool) -> zbus::Result<Vec<RestockEntry>>;
-    async fn get_last_restock(&self, ean: u64) -> zbus::Result<RestockEntry>;
+    async fn get_last_restock(&self, ean: u64, min_price: u32) -> zbus::Result<RestockEntry>;
     async fn bestbeforelist(&self) -> zbus::Result<Vec<BestBeforeEntry>>;
     async fn get_supplier_list(&self) -> zbus::Result<Vec<Supplier>>;
     async fn get_supplier_product_list(&self, id: i32) -> zbus::Result<Vec<ProductInfo>>;
@@ -728,10 +728,10 @@ async fn get_restocks(ean: u64, descending: bool) -> zbus::Result<Vec<RestockEnt
     proxy.get_restocks(ean, descending).await
 }
 
-async fn get_last_restock(ean: u64) -> zbus::Result<RestockEntry> {
+async fn get_last_restock(ean: u64, min_price: u32) -> zbus::Result<RestockEntry> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
-    proxy.get_last_restock(ean).await
+    proxy.get_last_restock(ean, min_price).await
 }
 
 async fn get_bestbeforelist() -> zbus::Result<Vec<BestBeforeEntry>> {
@@ -1337,7 +1337,7 @@ async fn web_product_last_restock(cookies: &CookieJar<'_>, ean: u64) -> Result<J
         return Err(Forbidden("Missing Permission".to_string()));
     }
 
-    let data = match get_last_restock(ean).await {
+    let data = match get_last_restock(ean, 1).await {
         Ok(data) => Ok(data),
         Err(err) => Err(Forbidden(err.to_string())),
     }?;

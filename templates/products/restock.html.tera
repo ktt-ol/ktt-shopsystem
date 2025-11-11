@@ -182,7 +182,7 @@
 		var get_last_restock = function() {
 			$.getJSON("/products/"+product.ean+"/get-last-restock", function(data) {
 				product.last_price = data.price;
-				product.last_amount = data.price;
+				product.last_amount = data.amount;
 				append_product_row();
 			}).fail(function() {
 				product.last_price = 0;
