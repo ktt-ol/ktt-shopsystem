@@ -1757,7 +1757,7 @@ async fn user_password_set(cookies: &CookieJar<'_>, userid: i32, password: Json<
         Ok(session) => session,
     };
 
-    if !session.superuser && !session.auth_users && userid != !session.uid {
+    if !session.superuser && !session.auth_users && userid != session.uid {
         return Err(Forbidden("Missing Permission".to_string()));
     }
 
