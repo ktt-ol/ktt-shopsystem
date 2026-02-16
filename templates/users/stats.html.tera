@@ -1,5 +1,5 @@
 {% extends "base" %}
-{% block title %}Invoice{% endblock title %}
+{% block title %}Statistics{% endblock title %}
 {% block content %}
 	<div class="container">
 		<script type="text/javascript" src="/static/js/d3.js"></script>
