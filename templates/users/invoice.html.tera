@@ -47,7 +47,7 @@
 				{% for entry in invoicedata %}<tr>
 					<td>{{ entry.timestamp | date(format="%Y-%m-%d", timezone="Europe/Berlin") }}</td>
 					<td>{{ entry.timestamp | date(format="%H:%M:%S", timezone="Europe/Berlin") }}</td>
-					<td>{{ entry.product.name }}</td>
+					<td><a href="/products/{{entry.product.ean}}">{{ entry.product.name }}</a></td>
 					<td>{{ entry.price | cent2euro }} €</td>
 				</tr>{% endfor %}
 				<tr><th colspan="3">Sum</th><td>{{ sum | cent2euro }} €</td></tr>
