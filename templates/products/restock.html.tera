@@ -17,11 +17,12 @@
 						<th scope="col">Price per Piece</th>
 						<th scope="col">Best Before Date</th>
 						<th scope="col">Status</th>
+						<th scope="col">X</th>
 					</tr>
 				</thead>
 				<tbody class="table-group-divider">
 					<tr id="last">
-						<td colspan="6">
+						<td colspan="7">
 							<div class="dropdown row">
 								<div class="input-group dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 									<span class="input-group-text"><i class="bi bi-search"></i></span>
@@ -154,10 +155,19 @@
 			let td_price = '<td><input name="'+product.ean+'_price" placeholder="'+cent2euro(product.last_price)+' (last price)" aria-label="Price per piece" type="text" class="form-control" oninput="check_row_input('+product.ean+');"></td>';
 			let td_bbd = '<td><input name="'+product.ean+'_best_before_date" type="date" oninput="check_row_input('+product.ean+');"></td>';
 			let td_status = '<td></td>';
+			let td_remove = '<td colspan="1"><button class="btn btn-danger removeentry" type="button" onclick="remove_product_row('+product.ean+')"><span class="bi-dash-lg" aria-hidden="true"></span></button></td>';
 
-			$('#producttable tr:last').before('<tr id="row_'+product.ean+'">'+td_ean+td_name+td_amount+td_multiplier+td_price+td_bbd+td_status+'</tr>');
+			$('#producttable tr:last').before('<tr id="row_'+product.ean+'">'+td_ean+td_name+td_amount+td_multiplier+td_price+td_bbd+td_status+td_remove+'</tr>');
 			check_row_input(product.ean)
 			productsearch_clear();
+		}
+
+		var remove_product_row = function(ean) {
+			$('#producttable > tbody > tr').each(function(index, tr) {
+				if (tr.children[0].innerText == ean.toString()) {
+					tr.remove();
+				}
+			});
 		}
 
 		var check_row_input = function(ean) {
@@ -259,7 +269,7 @@
 			var req = $.postJSON("/products/"+data.ean+"/restock", requestdata)
 				.done(function(response) {
 					console.log("submit for "+data.ean+" ("+data.name+") successful");
-					update_row_status(data.htmlrow, "green", "OK");
+					update_row_status(data.htmlrow, "green", "Restock DONE");
 				})
 				.fail(function(jqXHR, textStatus, errorThrown) {
 					console.log("submit for "+data.ean+" ("+data.name+") failed");
@@ -334,6 +344,7 @@
 			if (submissionok && submissiondata.length > 0) {
 				submissiondata.forEach((row) => restock_one(row, supplier));
 				$("#submit").prop("disabled", true);
+				$(".removeentry").prop("disabled", true);
 			} else {
 				console.log("submission is not ready...");
 			}
