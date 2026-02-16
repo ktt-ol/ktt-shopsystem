@@ -43,6 +43,11 @@
           </ul>
         </li>
 		{% endif %}
+		{% if session.superuser %}
+        <li class="nav-item">
+          <a class="nav-link {% if page is starting_with("sales/") %}active{% endif %}" aria-current="page" href="/sales/">Sales</a>
+        </li>
+		{% endif %}
       </ul>
       <ul class="navbar-nav nav pull-right">
         <li class="nav-item dropdown">

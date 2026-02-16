@@ -105,6 +105,13 @@ struct InvoiceEntry {
 }
 
 #[derive(Deserialize,Serialize, zbus::zvariant::Type)]
+struct SalesEntry {
+	timestamp: i64,
+    user: UserBasicInfo,
+	product: Product,
+}
+
+#[derive(Deserialize,Serialize, zbus::zvariant::Type)]
 struct UserSaleStatsEntry {
     timedatecode: String,
     count: i32,
@@ -140,6 +147,13 @@ struct UserAuth {
 	auth_cashbox: bool,
 	auth_products: bool,
 	auth_users: bool,
+}
+
+#[derive(Deserialize,Serialize, zbus::zvariant::Type)]
+struct UserBasicInfo {
+	id: i32,
+	firstname: String,
+	lastname: String,
 }
 
 #[derive(Deserialize,Serialize, zbus::zvariant::Type)]
@@ -849,6 +863,32 @@ impl Database {
         let mut statement = connection.prepare(query)?;
         let theme = statement.query_row((fallback, user), |r| r.get(0))?;
         Ok(theme)
+    }
+
+    fn get_sales(&mut self, from: i64, to: i64) -> Result<Vec<SalesEntry>, DatabaseError> {
+        let query = "SELECT timestamp, user AS userid, firstname, lastname, product AS productid, name AS productname FROM sales LEFT JOIN products ON sales.product = products.id LEFT JOIN users ON sales.user = users.id WHERE timestamp >= ? and timestamp <= ? ORDER BY timestamp DESC";
+		let mut result = Vec::new();
+        let connection = self.pool.get()?;
+        let mut statement = connection.prepare(query)?;
+        let to = if to < 0 { get_unix_time() } else { to };
+        let mut rows = statement.query((from, to))?;
+
+        while let Some(row) = rows.next()? {
+            result.push(SalesEntry {
+                timestamp: row.get(0)?,
+                user: UserBasicInfo {
+                    id: row.get(1)?,
+                    firstname: row.get(2)?,
+                    lastname: row.get(3)?,
+                },
+                product: Product {
+                    ean: row.get(4)?,
+                    name: row.get(5)?,
+                },
+            });
+        }
+
+		Ok(result)
     }
 
     fn get_invoice(&mut self, user: i32, from: i64, to: i64) -> Result<Vec<InvoiceEntry>, DatabaseError> {

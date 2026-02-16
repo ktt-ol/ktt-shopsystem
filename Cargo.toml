@@ -102,6 +102,7 @@ assets = [
 	["templates/aliases/*", "usr/share/shopsystem/templates/aliases/", "644"],
 	["templates/cashbox/*", "usr/share/shopsystem/templates/cashbox/", "644"],
 	["templates/products/*", "usr/share/shopsystem/templates/products/", "644"],
+	["templates/sales/*", "usr/share/shopsystem/templates/sales/", "644"],
 	["templates/suppliers/*", "usr/share/shopsystem/templates/suppliers/", "644"],
 	["templates/users/*", "usr/share/shopsystem/templates/users/", "644"],
 	["templates/static/css/*", "usr/share/shopsystem/templates/static/css/", "644"],

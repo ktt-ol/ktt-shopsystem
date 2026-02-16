@@ -1,0 +1,26 @@
+{% extends "base" %}
+{% block title %}Sales{% endblock title %}
+{% block content %}
+    {% if session.superuser %}
+    <div class="container">
+        <h2>Sales in the last 24 hours</h2>
+
+        <table id="producttable" class="table table-bordered table-striped table-hover">
+            <thead>
+                <tr>
+                    <th scope="col" class="text-nowrap">Date &amp; Time</th>
+                    <th scope="col" class="text-nowrap">User</th>
+                    <th scope="col" class="w-100">Product</th>
+                </tr>
+            </thead>
+            <tbody>
+              {% for sale in sales %}<tr>
+                <td class="text-nowrap">{{ sale.timestamp | date(format="%Y-%m-%d %H:%M", timezone="Europe/Berlin") }}</td>
+                <td class="text-nowrap"><a href="/users/{{ sale.user.id }}">{{ sale.user.firstname }} {{ sale.user.lastname }}</a></td>
+                <td><a href="/products/{{ sale.product.ean }}">{{ sale.product.name }}</a></td>
+              </tr>{% endfor %}
+            </tbody>
+      </table>
+    </div>
+    {% endif %}
+{% endblock content %}

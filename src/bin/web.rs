@@ -448,10 +448,24 @@ pub struct Product {
 }
 
 #[derive(Type, Deserialize, Serialize)]
+struct UserBasicInfo {
+	id: i32,
+	firstname: String,
+	lastname: String,
+}
+
+#[derive(Type, Deserialize, Serialize)]
 pub struct InvoiceEntry {
 	timestamp: i64,
 	product: Product,
 	price: i32,
+}
+
+#[derive(Type, Deserialize, Serialize)]
+pub struct SalesEntry {
+	timestamp: i64,
+    user: UserBasicInfo,
+	product: Product,
 }
 
 #[derive(Type, Deserialize, Serialize)]
@@ -550,6 +564,7 @@ trait ShopDB {
     async fn user_disable(&self, user: i32, value: bool) -> zbus::Result<()>;
     async fn user_replace(&self, info: &UserInfo) -> zbus::Result<()>;
     async fn user_is_disabled(&self, user: i32) -> zbus::Result<bool>;
+    async fn get_sales(&self, from: i64, to: i64) -> zbus::Result<Vec<SalesEntry>>;
 }
 
 #[proxy(
@@ -967,6 +982,12 @@ async fn get_session_with_sessionid(sessionid: &str) -> zbus::Result<Session> {
         auth_products: auth.auth_products || auth.superuser,
         auth_users: auth.auth_users || auth.superuser,
     })
+}
+
+async fn get_sales(start: i64, stop: i64) -> zbus::Result<Vec<SalesEntry>> {
+    let connection = Connection::system().await?;
+    let proxy = ShopDBProxy::new(&connection).await?;
+    proxy.get_sales(start, stop).await
 }
 
 async fn get_session(cookies: &CookieJar<'_>) -> zbus::Result<Session> {
@@ -2080,6 +2101,22 @@ async fn user_import_pgp_upload(cookies: &CookieJar<'_>, mut form: Form<FileUplo
     Ok(Template::render("users/import-pgp-upload", context! { page: "users/import-pgp-upload", session: session, keys: keys }))
 }
 
+fn get_unix_time() -> i64 {
+    match std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH) {
+        Ok(n) => n.as_secs().try_into().expect("Cannot convert timestamp from u64 to i64"),
+        Err(_) => panic!("SystemTime before UNIX EPOCH!"),
+    }
+}
+
+
+#[get("/sales")]
+async fn sales(cookies: &CookieJar<'_>) -> Result<Template, WebShopError> {
+    let session = get_session(cookies).await?;
+    let sales = get_sales(get_unix_time() - 86400, get_unix_time()).await?;
+
+    Ok(Template::render("sales/index", context! { page: "sales/index", session: session, sales: sales }))
+}
+
 #[catch(404)]
 fn not_found() -> &'static str {
     "could not find the page (404)"
@@ -2175,7 +2212,7 @@ fn rocket() -> _ {
             cashbox_update, cashbox_details, users, user_info, user_barcode,
             user_sound_theme_set, user_password_set, user_toggle_auth, user_invoice,
             user_invoice_full, user_stats, user_import, user_import_upload,
-            user_import_apply, user_import_pgp, user_import_pgp_upload])
+            user_import_apply, user_import_pgp, user_import_pgp_upload, sales])
         .attach(Template::custom(|engines| {
             engines.tera.register_filter("cent2euro", cent2euro);
             engines.tera.register_filter("gendericon", gendericon);
