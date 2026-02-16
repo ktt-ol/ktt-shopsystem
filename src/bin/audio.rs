@@ -15,7 +15,6 @@
 
 use std::{error::Error, future::pending};
 use zbus::{connection, object_server::SignalEmitter, interface};
-use rand::Rng;
 use configparser::ini::Ini;
 use gstreamer::prelude::*;
 
@@ -29,7 +28,7 @@ fn get_files(dir: &str) -> std::io::Result<Vec<String>> {
 
 fn get_random_file(dir: &str) -> std::io::Result<String> {
     let files = get_files(dir)?;
-    let index = rand::rng().random_range(0usize..files.len());
+    let index = rand::random_range(0usize..files.len());
     Ok(files[index].clone())
 }
 

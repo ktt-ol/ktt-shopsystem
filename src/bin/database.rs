@@ -49,7 +49,7 @@ impl From<r2d2_sqlite::rusqlite::Error> for DatabaseError {
 
 #[derive(Deserialize,Serialize, zbus::zvariant::Type)]
 struct DetailedProduct {
-	ean: u64,
+	ean: i64,
 	name: String,
 	category: String,
 	amount: i32,
@@ -59,14 +59,14 @@ struct DetailedProduct {
 
 #[derive(Deserialize,Serialize, zbus::zvariant::Type)]
 struct ProductInfo {
-	ean: u64,
+	ean: i64,
 	name: String,
 }
 
 #[derive(Deserialize,Serialize, zbus::zvariant::Type)]
 struct DetailedProductInfo {
-	ean: u64,
-    aliases: Vec<u64>,
+	ean: i64,
+    aliases: Vec<i64>,
 	name: String,
 	category: String,
 	amount: i32,
@@ -93,7 +93,7 @@ struct RestockEntry {
 
 #[derive(Deserialize,Serialize, zbus::zvariant::Type)]
 struct Product {
-	ean: u64,
+	ean: i64,
 	name: String,
 }
 
@@ -129,8 +129,8 @@ struct Supplier {
 
 #[derive(Deserialize,Serialize, zbus::zvariant::Type)]
 struct EanAlias {
-	ean: u64,
-	real_ean: u64,
+	ean: i64,
+	real_ean: i64,
 }
 
 #[derive(Deserialize,Serialize, zbus::zvariant::Type)]
@@ -194,7 +194,7 @@ impl UserInfo {
 
 #[derive(Deserialize,Serialize, zbus::zvariant::Type)]
 struct BestBeforeEntry {
-	ean: u64,
+	ean: i64,
 	name: String,
 	amount: i32,
 	best_before_date: i64,
@@ -236,7 +236,7 @@ fn sha256(msg: &str) -> String {
 #[interface(name = "io.mainframe.shopsystem.Database")]
 impl Database {
 
-	fn get_products(&mut self) -> Result<HashMap<u64,String>, DatabaseError> {
+	fn get_products(&mut self) -> Result<HashMap<i64,String>, DatabaseError> {
 		let mut result = HashMap::new();
         let query = "SELECT id, name FROM products ORDER BY id";
         let connection = self.pool.get()?;
@@ -313,7 +313,7 @@ impl Database {
         Ok(result)
     }
 
-	fn get_product_for_ean(&mut self, ean: u64) -> Result<DetailedProduct, DatabaseError> {
+	fn get_product_for_ean(&mut self, ean: i64) -> Result<DetailedProduct, DatabaseError> {
         let ean = self.ean_alias_get(ean)?;
 		let result = DetailedProduct {
             ean: ean,
@@ -326,7 +326,7 @@ impl Database {
         Ok(result)
 	}
 
-	fn product_metadata_set(&mut self, ean: u64, metadata: ProductMetadata) -> Result<(), DatabaseError> {
+	fn product_metadata_set(&mut self, ean: i64, metadata: ProductMetadata) -> Result<(), DatabaseError> {
         let ean = self.ean_alias_get(ean)?;
         let connection = self.pool.get()?;
         let query = "INSERT OR REPLACE INTO product_metadata ('product', 'product_size', 'product_size_is_weight', 'container_size', 'calories', 'carbohydrates', 'fats', 'proteins', 'deposit', 'container_deposit') VALUES (?,?,?,?,?,?,?,?,?,?)";
@@ -347,7 +347,7 @@ impl Database {
         Ok(())
 	}
 
-	fn product_metadata_get(&mut self, ean: u64) -> Result<ProductMetadata, DatabaseError> {
+	fn product_metadata_get(&mut self, ean: i64) -> Result<ProductMetadata, DatabaseError> {
         let query = "SELECT product_size, product_size_is_weight, container_size, calories, carbohydrates, fats, proteins, deposit, container_deposit FROM product_metadata WHERE product = ?";
         let ean = self.ean_alias_get(ean)?;
         let connection = self.pool.get()?;
@@ -369,7 +369,7 @@ impl Database {
         Ok(result)
 	}
 
-	fn get_product_sales_info(&mut self, ean: u64, since: i64) -> Result<u32, DatabaseError> {
+	fn get_product_sales_info(&mut self, ean: i64, since: i64) -> Result<u32, DatabaseError> {
         let query = "select COUNT(*) AS sold_items from sales where sales.product = ? and datetime(timestamp, 'unixepoch', 'localtime') > datetime(?, 'unixepoch', 'localtime')";
         let ean = self.ean_alias_get(ean)?;
         let connection = self.pool.get()?;
@@ -379,7 +379,7 @@ impl Database {
         Ok(result)
 	}
 
-	fn get_prices(&mut self, product: u64) -> Result<Vec<PriceEntry>, DatabaseError> {
+	fn get_prices(&mut self, product: i64) -> Result<Vec<PriceEntry>, DatabaseError> {
 		let mut result = Vec::new();
         let query = "SELECT valid_from, memberprice, guestprice FROM prices WHERE product = ? ORDER BY valid_from ASC;";
         let connection = self.pool.get()?;
@@ -397,7 +397,7 @@ impl Database {
 		Ok(result)
 	}
 
-	fn get_restocks(&mut self, product: u64, descending: bool) -> Result<Vec<RestockEntry>, DatabaseError> {
+	fn get_restocks(&mut self, product: i64, descending: bool) -> Result<Vec<RestockEntry>, DatabaseError> {
 		let mut result = Vec::new();
         let query_asc = "SELECT timestamp, amount, price, supplier, best_before_date FROM restock WHERE product = ? ORDER BY timestamp ASC;";
         let query_desc = "SELECT timestamp, amount, price, supplier, best_before_date FROM restock WHERE product = ? ORDER BY timestamp DESC;";
@@ -422,7 +422,7 @@ impl Database {
 		Ok(result)
 	}
 
-	fn get_last_restock(&mut self, product: u64, min_price: u32) -> Result<RestockEntry, DatabaseError> {
+	fn get_last_restock(&mut self, product: i64, min_price: u32) -> Result<RestockEntry, DatabaseError> {
         let query = "SELECT timestamp, amount, price, supplier, best_before_date FROM restock WHERE product = ? AND price >= ? ORDER BY timestamp DESC LIMIT 1;";
         let connection = self.pool.get()?;
         let mut statement = connection.prepare(query)?;
@@ -438,7 +438,7 @@ impl Database {
         })
     }
 
-	fn buy(&mut self, user: i32, article: u64) -> Result<(), DatabaseError> {
+	fn buy(&mut self, user: i32, article: i64) -> Result<(), DatabaseError> {
         let query = "INSERT INTO sales ('user', 'product', 'timestamp') VALUES (?, ?, ?)";
         let connection = self.pool.get()?;
         let mut statement = connection.prepare(query)?;
@@ -447,7 +447,7 @@ impl Database {
         Ok(())
 	}
 
-	fn get_product_name(&mut self, article: u64) -> Result<String, DatabaseError> {
+	fn get_product_name(&mut self, article: i64) -> Result<String, DatabaseError> {
         let query = "SELECT name FROM products WHERE id = ?";
         let connection = self.pool.get()?;
         let mut statement = connection.prepare(query)?;
@@ -455,7 +455,7 @@ impl Database {
         Ok(name)
 	}
 
-	fn get_product_aliases(&mut self, article: u64) -> Result<Vec<u64>, DatabaseError> {
+	fn get_product_aliases(&mut self, article: i64) -> Result<Vec<i64>, DatabaseError> {
 		let mut result = Vec::new();
         let query = "SELECT id FROM ean_aliases WHERE real_ean = ?";
         let connection = self.pool.get()?;
@@ -469,7 +469,7 @@ impl Database {
 		Ok(result)
 	}
 
-	fn get_product_category(&mut self, article: u64) -> Result<String, DatabaseError> {
+	fn get_product_category(&mut self, article: i64) -> Result<String, DatabaseError> {
         let query = "SELECT categories.name FROM categories, products WHERE products.category = categories.id AND products.id = ?";
         let connection = self.pool.get()?;
         let mut statement = connection.prepare(query)?;
@@ -477,7 +477,7 @@ impl Database {
         Ok(category)
 	}
 
-	fn get_product_amount(&mut self, article: u64) -> Result<i32, DatabaseError> {
+	fn get_product_amount(&mut self, article: i64) -> Result<i32, DatabaseError> {
         let query = "SELECT amount FROM products WHERE id = ?";
         let connection = self.pool.get()?;
         let mut statement = connection.prepare(query)?;
@@ -485,7 +485,7 @@ impl Database {
         Ok(amount)
     }
 
-	fn get_product_amount_with_container_size(&mut self, article: u64) -> Result<(i32, u32), DatabaseError> {
+	fn get_product_amount_with_container_size(&mut self, article: i64) -> Result<(i32, u32), DatabaseError> {
         let amount = self.get_product_amount(article)?;
 
         let query = "SELECT container_size FROM product_metadata WHERE product = ?";
@@ -500,7 +500,7 @@ impl Database {
         Ok((amount, container_size))
     }
 
-	fn get_product_deprecated(&mut self, article: u64) -> Result<bool, DatabaseError> {
+	fn get_product_deprecated(&mut self, article: i64) -> Result<bool, DatabaseError> {
         let query = "SELECT deprecated FROM products WHERE id = ?";
         let connection = self.pool.get()?;
         let mut statement = connection.prepare(query)?;
@@ -508,7 +508,7 @@ impl Database {
         Ok(deprecated)
 	}
 
-	fn product_deprecate(&mut self, article: u64, value: bool) -> Result<(), DatabaseError> {
+	fn product_deprecate(&mut self, article: i64, value: bool) -> Result<(), DatabaseError> {
         let query = "UPDATE products SET deprecated=? WHERE id = ?";
         let connection = self.pool.get()?;
         let mut statement = connection.prepare(query)?;
@@ -516,7 +516,7 @@ impl Database {
         Ok(())
 	}
 
-	fn get_product_price(&mut self, user: i32, article: u64) -> Result<i32, DatabaseError> {
+	fn get_product_price(&mut self, user: i32, article: i64) -> Result<i32, DatabaseError> {
         let timestamp = get_unix_time().try_into().unwrap();
         let member = user != 0;
         let query = "SELECT memberprice, guestprice FROM prices WHERE product = ? AND valid_from <= ? ORDER BY valid_from DESC LIMIT 1";
@@ -531,7 +531,7 @@ impl Database {
         }
     }
 
-	fn ean_alias_get(&mut self, ean: u64) -> Result<u64, DatabaseError> {
+	fn ean_alias_get(&mut self, ean: i64) -> Result<i64, DatabaseError> {
         let query = "SELECT real_ean FROM ean_aliases WHERE id = ? UNION ALL SELECT ? LIMIT 1";
         let connection = self.pool.get()?;
         let mut statement = connection.prepare(query)?;
@@ -568,7 +568,7 @@ impl Database {
 		Ok(result)
 	}
 
-	fn restock(&mut self, user: i32, product: u64, amount: u32, price: u32, supplier: i32, best_before_date: i64) -> Result<(), DatabaseError> {
+	fn restock(&mut self, user: i32, product: i64, amount: u32, price: u32, supplier: i32, best_before_date: i64) -> Result<(), DatabaseError> {
         let timestamp = get_unix_time();
         let query = "INSERT INTO restock ('user', 'product', 'amount', 'price', 'timestamp', 'supplier', 'best_before_date') VALUES (?, ?, ?, ?, ?, ?, ?)";
         let connection = self.pool.get()?;
@@ -577,7 +577,7 @@ impl Database {
         Ok(())
 	}
 
-	fn new_product(&mut self, ean: u64, name: &str, category: i32, memberprice: i32, guestprice: i32) -> Result<(), DatabaseError> {
+	fn new_product(&mut self, ean: i64, name: &str, category: i32, memberprice: i32, guestprice: i32) -> Result<(), DatabaseError> {
         let query = "INSERT INTO products ('id', 'name', 'category', 'amount') VALUES (?, ?, ?, ?)";
         let connection = self.pool.get()?;
         let mut statement = connection.prepare(query)?;
@@ -586,7 +586,7 @@ impl Database {
         Ok(())
 	}
 
-	fn new_price(&mut self, product: u64, timestamp: i64, memberprice: i32, guestprice: i32) -> Result<(), DatabaseError> {
+	fn new_price(&mut self, product: i64, timestamp: i64, memberprice: i32, guestprice: i32) -> Result<(), DatabaseError> {
         let query = "INSERT INTO prices ('product', 'valid_from', 'memberprice', 'guestprice') VALUES (?, ?, ?, ?)";
         let connection = self.pool.get()?;
         let mut statement = connection.prepare(query)?;
@@ -760,7 +760,7 @@ impl Database {
         let query = "SELECT firstname, lastname, email, gender, street, plz, city, pgp, joined_at, disabled, hidden, sound_theme FROM users WHERE id = ?";
         let mut statement = connection.prepare(query)?;
         let mut userinfo = statement.query_row([user], |r| Ok({
-            let plz: u64 = r.get(5)?;
+            let plz: i64 = r.get(5)?;
             UserInfo {
                 id: user,
                 firstname: r.get(0)?,
@@ -1131,7 +1131,7 @@ impl Database {
 		Ok(result)
     }
 
-    fn ean_alias_add(&mut self, ean: u64, real_ean: u64) -> Result<(), DatabaseError> {
+    fn ean_alias_add(&mut self, ean: i64, real_ean: i64) -> Result<(), DatabaseError> {
         let query = "INSERT OR IGNORE INTO ean_aliases (id, real_ean) VALUES (?, ?)";
         let connection = self.pool.get()?;
         let mut statement = connection.prepare(query)?;

@@ -25,7 +25,7 @@ use rocket::http::{Cookie, CookieJar};
 use std::{collections::HashMap, hash::BuildHasher};
 use zbus;
 use zbus::{Connection, proxy, zvariant::Type};
-use rand::{Rng, distr::Alphanumeric};
+use rand::{RngExt, distr::Alphanumeric};
 use chrono;
 use chrono::prelude::*;
 use std::num::ParseIntError;
@@ -256,7 +256,7 @@ struct Session {
 
 #[derive(Type, Deserialize, Serialize)]
 pub struct StockItem {
-    ean: u64,
+    ean: i64,
     name: String,
     category: String,
     amount: i32,
@@ -266,14 +266,14 @@ pub struct StockItem {
 
 #[derive(Type, Deserialize, Serialize)]
 pub struct ProductInfo {
-	ean: u64,
+	ean: i64,
 	name: String,
 }
 
 #[derive(Type, Deserialize, Serialize)]
 pub struct DetailedProductInfo {
-	ean: u64,
-    aliases: Vec<u64>,
+	ean: i64,
+    aliases: Vec<i64>,
 	name: String,
 	category: String,
 	amount: i32,
@@ -284,7 +284,7 @@ pub struct DetailedProductInfo {
 
 #[derive(Type, Clone, Copy, Deserialize, Serialize)]
 pub struct ProductDiff {
-    ean: u64,
+    ean: i64,
     diff: i32,
 }
 
@@ -365,7 +365,7 @@ pub struct RestockEntryNamedSupplier {
 
 #[derive(Type, Deserialize, Serialize)]
 pub struct BestBeforeEntry {
-    ean: u64,
+    ean: i64,
     name: String,
     amount: i32,
     best_before_date: i64,
@@ -384,20 +384,20 @@ pub struct Supplier {
 
 #[derive(Type, Deserialize, Serialize)]
 pub struct EanAlias {
-	ean: u64,
-	real_ean: u64,
+	ean: i64,
+	real_ean: i64,
 }
 
 #[derive(Type, Deserialize, Serialize)]
 pub struct EanAliasWithName {
-	ean: u64,
-	real_ean: u64,
+	ean: i64,
+	real_ean: i64,
     name: String,
 }
 
 #[derive(FromForm)]
 pub struct NewProduct {
-	id: u64,
+	id: i64,
     name: String,
 	category: i32,
     memberprice: String,
@@ -443,7 +443,7 @@ pub struct UserAuth {
 
 #[derive(Type, Deserialize, Serialize)]
 pub struct Product {
-	ean: u64,
+	ean: i64,
 	name: String,
 }
 
@@ -482,7 +482,7 @@ pub struct ProductCategory {
 
 #[derive(Type, Deserialize, Serialize)]
 pub struct ProductDetails {
-    ean: u64,
+    ean: i64,
     name: String,
     category: String,
     amount: i32,
@@ -499,23 +499,23 @@ trait ShopDB {
     async fn get_user_by_sessionid(&self, sessionid: &str) -> zbus::Result<i32>;
     async fn get_stock(&self) -> zbus::Result<Vec<StockItem>>;
     async fn get_productlist(&self) -> zbus::Result<Vec<DetailedProductInfo>>;
-    async fn restock(&self, user: i32, product: u64, amount: u32, price: u32, supplier: i32, best_before_date: i64) -> zbus::Result<()>;
-    async fn buy(&self, user: i32, product: u64) -> zbus::Result<()>;
-    async fn new_price(&self, product: u64, timestamp: i64, memberprice: i32, guestprice: i32) ->  zbus::Result<()>;
-    async fn get_prices(&self, ean: u64) -> zbus::Result<Vec<PriceInfo>>;
-    async fn get_product_aliases(&self, ean: u64) -> zbus::Result<Vec<u64>>;
-    async fn get_product_name(&self, ean: u64) -> zbus::Result<String>;
-    async fn get_product_amount(&self, ean: u64) -> zbus::Result<i32>;
-    async fn get_product_amount_with_container_size(&self, ean: u64) -> zbus::Result<(i32, u32)>;
-	async fn get_product_sales_info(&self, ean: u64, since: i64) -> zbus::Result<u32>;
-    async fn get_product_category(&self, ean: u64) -> zbus::Result<String>;
-    async fn get_product_deprecated(&self, ean: u64) -> zbus::Result<bool>;
-    async fn product_deprecate(&self, ean: u64, deprecated: bool) -> zbus::Result<()>;
-    async fn product_metadata_get(&self, ean: u64) -> zbus::Result<ProductMetadata>;
-    async fn product_metadata_set(&self, ean: u64, metadata: ProductMetadata) -> zbus::Result<()>;
+    async fn restock(&self, user: i32, product: i64, amount: u32, price: u32, supplier: i32, best_before_date: i64) -> zbus::Result<()>;
+    async fn buy(&self, user: i32, product: i64) -> zbus::Result<()>;
+    async fn new_price(&self, product: i64, timestamp: i64, memberprice: i32, guestprice: i32) ->  zbus::Result<()>;
+    async fn get_prices(&self, ean: i64) -> zbus::Result<Vec<PriceInfo>>;
+    async fn get_product_aliases(&self, ean: i64) -> zbus::Result<Vec<i64>>;
+    async fn get_product_name(&self, ean: i64) -> zbus::Result<String>;
+    async fn get_product_amount(&self, ean: i64) -> zbus::Result<i32>;
+    async fn get_product_amount_with_container_size(&self, ean: i64) -> zbus::Result<(i32, u32)>;
+	async fn get_product_sales_info(&self, ean: i64, since: i64) -> zbus::Result<u32>;
+    async fn get_product_category(&self, ean: i64) -> zbus::Result<String>;
+    async fn get_product_deprecated(&self, ean: i64) -> zbus::Result<bool>;
+    async fn product_deprecate(&self, ean: i64, deprecated: bool) -> zbus::Result<()>;
+    async fn product_metadata_get(&self, ean: i64) -> zbus::Result<ProductMetadata>;
+    async fn product_metadata_set(&self, ean: i64, metadata: ProductMetadata) -> zbus::Result<()>;
     async fn products_search(&self, search_query: &str) -> zbus::Result<Vec<Product>>;
-    async fn get_restocks(&self, ean: u64, descending: bool) -> zbus::Result<Vec<RestockEntry>>;
-    async fn get_last_restock(&self, ean: u64, min_price: u32) -> zbus::Result<RestockEntry>;
+    async fn get_restocks(&self, ean: i64, descending: bool) -> zbus::Result<Vec<RestockEntry>>;
+    async fn get_last_restock(&self, ean: i64, min_price: u32) -> zbus::Result<RestockEntry>;
     async fn bestbeforelist(&self) -> zbus::Result<Vec<BestBeforeEntry>>;
     async fn get_supplier_list(&self) -> zbus::Result<Vec<Supplier>>;
     async fn get_supplier_product_list(&self, id: i32) -> zbus::Result<Vec<ProductInfo>>;
@@ -523,9 +523,9 @@ trait ShopDB {
     async fn add_supplier(&self, name: &str, postal_code: &str, city: &str, street: &str, phone: &str, website: &str) -> zbus::Result<()>;
     async fn get_supplier(&self, id: i32) -> zbus::Result<Supplier>;
     async fn ean_alias_list(&self) -> zbus::Result<Vec<EanAlias>>;
-    async fn ean_alias_get(&self, ean: u64) -> zbus::Result<u64>;
-    async fn ean_alias_add(&self, ean: u64, real_ean: u64) -> zbus::Result<()>;
-    async fn new_product(&self, ean: u64, name: &str, category: i32, memberprice: i32, guestprice: i32) -> zbus::Result<()>;
+    async fn ean_alias_get(&self, ean: i64) -> zbus::Result<i64>;
+    async fn ean_alias_add(&self, ean: i64, real_ean: i64) -> zbus::Result<()>;
+    async fn new_product(&self, ean: i64, name: &str, category: i32, memberprice: i32, guestprice: i32) -> zbus::Result<()>;
     async fn check_user_password(&self, userid: i32, password: &str) -> zbus::Result<bool>;
     async fn set_user_password(&self, userid: i32, password: &str) -> zbus::Result<()>;
     async fn get_username(&self, userid: i32) -> zbus::Result<String>;
@@ -614,103 +614,103 @@ async fn get_productlist() -> zbus::Result<Vec<DetailedProductInfo>> {
     proxy.get_productlist().await
 }
 
-async fn get_prices(ean: u64) -> zbus::Result<Vec<PriceInfo>> {
+async fn get_prices(ean: i64) -> zbus::Result<Vec<PriceInfo>> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.get_prices(ean).await
 }
 
-async fn get_product_aliases(ean: u64) -> zbus::Result<Vec<u64>> {
+async fn get_product_aliases(ean: i64) -> zbus::Result<Vec<i64>> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.get_product_aliases(ean).await
 }
 
-async fn ean_alias_get(ean: u64) -> zbus::Result<u64> {
+async fn ean_alias_get(ean: i64) -> zbus::Result<i64> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.ean_alias_get(ean).await
 }
 
-async fn ean_alias_add(ean: u64, real_ean: u64) -> zbus::Result<()> {
+async fn ean_alias_add(ean: i64, real_ean: i64) -> zbus::Result<()> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.ean_alias_add(ean, real_ean).await
 }
 
-async fn new_product(ean: u64, name: &str, category: i32, memberprice: i32, guestprice: i32) -> zbus::Result<()> {
+async fn new_product(ean: i64, name: &str, category: i32, memberprice: i32, guestprice: i32) -> zbus::Result<()> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.new_product(ean, name, category, memberprice, guestprice).await
 }
 
-async fn get_product_name(ean: u64) -> zbus::Result<String> {
+async fn get_product_name(ean: i64) -> zbus::Result<String> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.get_product_name(ean).await
 }
 
-async fn get_product_amount(ean: u64) -> zbus::Result<i32> {
+async fn get_product_amount(ean: i64) -> zbus::Result<i32> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.get_product_amount(ean).await
 }
 
-async fn get_product_amount_with_container_size(ean: u64) -> zbus::Result<(i32, u32)> {
+async fn get_product_amount_with_container_size(ean: i64) -> zbus::Result<(i32, u32)> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.get_product_amount_with_container_size(ean).await
 }
 
-async fn get_product_sales_info(ean: u64, since: i64) -> zbus::Result<u32> {
+async fn get_product_sales_info(ean: i64, since: i64) -> zbus::Result<u32> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.get_product_sales_info(ean, since).await
 }
 
-async fn get_product_category(ean: u64) -> zbus::Result<String> {
+async fn get_product_category(ean: i64) -> zbus::Result<String> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.get_product_category(ean).await
 }
 
-async fn get_product_deprecated(ean: u64) -> zbus::Result<bool> {
+async fn get_product_deprecated(ean: i64) -> zbus::Result<bool> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.get_product_deprecated(ean).await
 }
 
-async fn product_deprecate(ean: u64, deprecated: bool) -> zbus::Result<()> {
+async fn product_deprecate(ean: i64, deprecated: bool) -> zbus::Result<()> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.product_deprecate(ean, deprecated).await
 }
 
-async fn product_metadata_get(ean: u64) -> zbus::Result<ProductMetadata> {
+async fn product_metadata_get(ean: i64) -> zbus::Result<ProductMetadata> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.product_metadata_get(ean).await
 }
 
-async fn product_metadata_set(ean: u64, metadata: ProductMetadata) -> zbus::Result<()> {
+async fn product_metadata_set(ean: i64, metadata: ProductMetadata) -> zbus::Result<()> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.product_metadata_set(ean, metadata).await
 }
 
-async fn restock(user: i32, product: u64, amount: u32, price: u32, supplier: i32, best_before_date: i64) -> zbus::Result<()> {
+async fn restock(user: i32, product: i64, amount: u32, price: u32, supplier: i32, best_before_date: i64) -> zbus::Result<()> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.restock(user, product, amount, price, supplier, best_before_date).await
 }
 
-async fn buy(user: i32, product: u64) -> zbus::Result<()> {
+async fn buy(user: i32, product: i64) -> zbus::Result<()> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.buy(user, product).await
 }
 
-async fn new_price(product: u64, timestamp: i64, memberprice: i32, guestprice: i32) -> zbus::Result<()> {
+async fn new_price(product: i64, timestamp: i64, memberprice: i32, guestprice: i32) -> zbus::Result<()> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.new_price(product, timestamp, memberprice, guestprice).await
@@ -722,13 +722,13 @@ async fn products_search(search_query: &str) -> zbus::Result<Vec<Product>> {
     proxy.products_search(search_query).await
 }
 
-async fn get_restocks(ean: u64, descending: bool) -> zbus::Result<Vec<RestockEntry>> {
+async fn get_restocks(ean: i64, descending: bool) -> zbus::Result<Vec<RestockEntry>> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.get_restocks(ean, descending).await
 }
 
-async fn get_last_restock(ean: u64, min_price: u32) -> zbus::Result<RestockEntry> {
+async fn get_last_restock(ean: i64, min_price: u32) -> zbus::Result<RestockEntry> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.get_last_restock(ean, min_price).await
@@ -1022,7 +1022,7 @@ async fn products(cookies: &CookieJar<'_>) -> Result<Template, WebShopError> {
     Ok(Template::render("products/index", context! { page: "products/index", session: session, categories: categories, products: stock }))
 }
 
-fn check_valid_gtin(ean: u64, length: usize) -> bool {
+fn check_valid_gtin(ean: i64, length: usize) -> bool {
     if format!("{}", ean).len() > length {
         return false;
     }
@@ -1157,7 +1157,7 @@ async fn product_inventory_apply(cookies: &CookieJar<'_>, data: Json<InventoryDa
 }
 
 #[get("/products/<ean>/json", rank=1)]
-async fn product_details_json(ean: u64) -> Result<Json<ProductDetails>, WebShopError> {
+async fn product_details_json(ean: i64) -> Result<Json<ProductDetails>, WebShopError> {
     let ean = ean_alias_get(ean).await?;
 
     Ok(Json(ProductDetails {
@@ -1170,12 +1170,12 @@ async fn product_details_json(ean: u64) -> Result<Json<ProductDetails>, WebShopE
 }
 
 #[get("/products/<ean>/amount", rank=1)]
-async fn product_amount_json(ean: u64) -> Result<Json<(i32, u32)>, WebShopError> {
+async fn product_amount_json(ean: i64) -> Result<Json<(i32, u32)>, WebShopError> {
     Ok(Json(get_product_amount_with_container_size(ean).await?))
 }
 
 #[get("/products/<ean>/sales-info?<timestamp>", rank=1)]
-async fn product_sales_info_json(ean: u64, timestamp: i64) -> Result<Json<u32>, WebShopError> {
+async fn product_sales_info_json(ean: i64, timestamp: i64) -> Result<Json<u32>, WebShopError> {
     Ok(Json(get_product_sales_info(ean, timestamp).await?))
 }
 
@@ -1184,7 +1184,7 @@ async fn product_search_json(search: &str) -> Result<Json<Vec<Product>>, WebShop
     Ok(Json(products_search(search).await?))
 }
 
-async fn product_missing(cookies: &CookieJar<'_>, ean: u64) -> Result<Template, WebShopError> {
+async fn product_missing(cookies: &CookieJar<'_>, ean: i64) -> Result<Template, WebShopError> {
     let session = get_session(cookies).await?;
     let categories = get_category_list().await?;
     Ok(Template::render("products/missing", context! { page: "products/missing", session: session, ean: ean, categories: categories }))
@@ -1204,7 +1204,7 @@ async fn product_restock(cookies: &CookieJar<'_>) -> Result<Template, WebShopErr
 }
 
 #[get("/products/<ean>")]
-async fn product_details(cookies: &CookieJar<'_>, ean: u64) -> Result<Template, WebShopError> {
+async fn product_details(cookies: &CookieJar<'_>, ean: i64) -> Result<Template, WebShopError> {
     let session = get_session(cookies).await?;
     let ean = ean_alias_get(ean).await?;
     let name;
@@ -1252,7 +1252,7 @@ async fn product_details(cookies: &CookieJar<'_>, ean: u64) -> Result<Template, 
 }
 
 #[get("/products/<ean>/deprecate/<deprecated>")]
-async fn web_product_deprecate(cookies: &CookieJar<'_>, ean: u64, deprecated: bool) -> Result<Json<bool>, Forbidden<String>> {
+async fn web_product_deprecate(cookies: &CookieJar<'_>, ean: i64, deprecated: bool) -> Result<Json<bool>, Forbidden<String>> {
     let session = match get_session(cookies).await {
         Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(session) => session,
@@ -1271,7 +1271,7 @@ async fn web_product_deprecate(cookies: &CookieJar<'_>, ean: u64, deprecated: bo
 }
 
 #[post("/products/<ean>/add-prices", format = "application/json", data = "<priceinfo>")]
-async fn web_product_add_prices(cookies: &CookieJar<'_>, ean: u64, priceinfo: Json<PriceInfo>) -> Result<Json<PriceInfo>, Forbidden<String>> {
+async fn web_product_add_prices(cookies: &CookieJar<'_>, ean: i64, priceinfo: Json<PriceInfo>) -> Result<Json<PriceInfo>, Forbidden<String>> {
     let session = match get_session(cookies).await {
         Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(session) => session,
@@ -1296,7 +1296,7 @@ async fn web_product_add_prices(cookies: &CookieJar<'_>, ean: u64, priceinfo: Js
 }
 
 #[post("/products/<ean>/restock", format = "application/json", data = "<data>")]
-async fn web_product_restock(cookies: &CookieJar<'_>, ean: u64, data: Json<RestockEntry>) -> Result<Json<RestockEntryNamedSupplier>, Forbidden<String>> {
+async fn web_product_restock(cookies: &CookieJar<'_>, ean: i64, data: Json<RestockEntry>) -> Result<Json<RestockEntryNamedSupplier>, Forbidden<String>> {
     let session = match get_session(cookies).await {
         Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(session) => session,
@@ -1327,7 +1327,7 @@ async fn web_product_restock(cookies: &CookieJar<'_>, ean: u64, data: Json<Resto
 }
 
 #[get("/products/<ean>/get-last-restock")]
-async fn web_product_last_restock(cookies: &CookieJar<'_>, ean: u64) -> Result<Json<RestockEntry>, Forbidden<String>> {
+async fn web_product_last_restock(cookies: &CookieJar<'_>, ean: i64) -> Result<Json<RestockEntry>, Forbidden<String>> {
     let session = match get_session(cookies).await {
         Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(session) => session,
@@ -1346,7 +1346,7 @@ async fn web_product_last_restock(cookies: &CookieJar<'_>, ean: u64) -> Result<J
 }
 
 #[get("/products/<ean>/add-alias/<alias>", format = "application/json")]
-async fn web_product_alias_add(cookies: &CookieJar<'_>, ean: u64, alias: u64) -> Result<Json<u64>, Forbidden<String>> {
+async fn web_product_alias_add(cookies: &CookieJar<'_>, ean: i64, alias: i64) -> Result<Json<i64>, Forbidden<String>> {
     let session = match get_session(cookies).await {
         Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(session) => session,
@@ -1390,7 +1390,7 @@ async fn web_product_alias_add(cookies: &CookieJar<'_>, ean: u64, alias: u64) ->
 }
 
 #[get("/products/<ean>/metadata-get")]
-async fn web_product_metadata_get(_cookies: &CookieJar<'_>, ean: u64) -> Result<Json<ProductMetadata>, Forbidden<String>> {
+async fn web_product_metadata_get(_cookies: &CookieJar<'_>, ean: i64) -> Result<Json<ProductMetadata>, Forbidden<String>> {
     match product_metadata_get(ean).await {
         Ok(metadata) => Ok(Json(metadata)),
         Err(err) => Err(Forbidden(err.to_string())),
@@ -1398,7 +1398,7 @@ async fn web_product_metadata_get(_cookies: &CookieJar<'_>, ean: u64) -> Result<
 }
 
 #[post("/products/<ean>/metadata-set", format = "application/json", data = "<metadata>")]
-async fn web_product_metadata_set(cookies: &CookieJar<'_>, ean: u64, metadata: Json<ProductMetadata>) -> Result<Json<()>, Forbidden<String>> {
+async fn web_product_metadata_set(cookies: &CookieJar<'_>, ean: i64, metadata: Json<ProductMetadata>) -> Result<Json<()>, Forbidden<String>> {
     let session = match get_session(cookies).await {
         Err(error) => { return Err(Forbidden(error.to_string())); },
         Ok(session) => session,

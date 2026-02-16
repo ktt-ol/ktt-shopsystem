@@ -399,7 +399,7 @@ fn code39_gen_checksum(text: &str) -> Option<char> {
     Some(result)
 }
 
-fn check_valid_gtin(ean: u64, length: usize) -> bool {
+fn check_valid_gtin(ean: i64, length: usize) -> bool {
     if format!("{}", ean).len() > length {
         return false;
     }
@@ -451,14 +451,14 @@ enum ShopInstruction {
 struct ShopCommand {
     instruction: ShopInstruction,
     userid: Option<i32>,
-    productid: Option<u64>,
+    productid: Option<i64>,
     rfiddata: Option<String>,
 }
 
 impl ShopCommand {
     fn parse(line: &str) -> Self {
         let is_code39 = code39_check(line);
-        let mut ean: Option<u64> = line.parse().ok();
+        let mut ean: Option<i64> = line.parse().ok();
 
         if ean.is_some() {
             if !check_valid_gtin(ean.unwrap(), 8) && !check_valid_gtin(ean.unwrap(), 13) {
@@ -526,11 +526,11 @@ trait ShopDB {
     async fn get_username(&self, userid: i32) -> zbus::Result<String>;
     async fn get_user_theme(&self, user: i32, fallback: String) -> zbus::Result<String>;
 
-    async fn ean_alias_get(&self, ean: u64) -> zbus::Result<u64>;
-    async fn get_product_name(&self, ean: u64) -> zbus::Result<String>;
-    async fn get_product_price(&self, user: i32, article: u64) -> zbus::Result<i32>;
+    async fn ean_alias_get(&self, ean: i64) -> zbus::Result<i64>;
+    async fn get_product_name(&self, ean: i64) -> zbus::Result<String>;
+    async fn get_product_price(&self, user: i32, article: i64) -> zbus::Result<i32>;
 
-	async fn buy(&self, user: i32, article: u64) -> zbus::Result<()>;
+	async fn buy(&self, user: i32, article: i64) -> zbus::Result<()>;
 }
 
 async fn get_username(uid: i32) -> zbus::Result<String> {
@@ -554,13 +554,13 @@ async fn get_userid_for_rfid(rfid: &str) -> Option<i32> {
 }
 
 struct Product {
-    ean: u64,
+    ean: i64,
     name: String,
     price: i32,
     guest_price: i32,
 }
 
-async fn get_product_info(ean: u64) -> zbus::Result<Product> {
+async fn get_product_info(ean: i64) -> zbus::Result<Product> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     let ean = proxy.ean_alias_get(ean).await?;
@@ -573,7 +573,7 @@ async fn get_product_info(ean: u64) -> zbus::Result<Product> {
     })
 }
 
-async fn get_product_info_for_user(ean: u64, user: i32) -> zbus::Result<Product> {
+async fn get_product_info_for_user(ean: i64, user: i32) -> zbus::Result<Product> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     let ean = proxy.ean_alias_get(ean).await?;
@@ -586,7 +586,7 @@ async fn get_product_info_for_user(ean: u64, user: i32) -> zbus::Result<Product>
     })
 }
 
-async fn buy(user: i32, article: u64) -> zbus::Result<()> {
+async fn buy(user: i32, article: i64) -> zbus::Result<()> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
     proxy.buy(user, article).await

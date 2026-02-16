@@ -137,7 +137,7 @@ pub struct InvoiceRecipient {
 
 #[derive(Deserialize,Serialize, zbus::zvariant::Type, zbus::zvariant::Value)]
 pub struct Product {
-	ean: u64,
+	ean: i64,
 	name: String,
 }
 

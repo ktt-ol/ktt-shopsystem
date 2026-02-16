@@ -71,7 +71,7 @@ struct InvoiceRecipient {
 
 #[derive(Deserialize, Serialize, zvariant::Type, zvariant::Value, Clone)]
 struct Product {
-	ean: u64,
+	ean: i64,
 	name: String,
 }
 
