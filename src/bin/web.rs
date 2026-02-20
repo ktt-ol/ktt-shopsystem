@@ -1757,7 +1757,7 @@ async fn user_sound_theme_set(cookies: &CookieJar<'_>, userid: i32, theme: Json<
         Ok(session) => session,
     };
 
-    if !session.superuser && !session.auth_users && userid != !session.uid {
+    if !session.superuser && !session.auth_users && userid != session.uid {
         return Err(Forbidden("Missing Permission".to_string()));
     }
 
