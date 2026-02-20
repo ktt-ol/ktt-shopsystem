@@ -1671,7 +1671,7 @@ async fn user_info(cookies: &CookieJar<'_>, id: i32) -> Result<Template, WebShop
     Ok(Template::render("users/info", context! { page: "users/info", userinfo: userinfo, userauth: userauth, sound_themes: sound_themes, session: session }))
 }
 
-fn render_centered_text(ctx: &cairo::Context, x: f64, y: f64, w: i32, msg: &str) -> Result<(), cairo::Error> {
+fn render_centered_text(ctx: &cairo::Context, x: f64, y: f64, w: i32, msg: &str) -> Result<(), WebShopError> {
     ctx.save()?;
     ctx.move_to(x, y);
     ctx.set_source_rgb(0.0, 0.0, 0.0);
@@ -1704,6 +1704,190 @@ fn render_centered_text(ctx: &cairo::Context, x: f64, y: f64, w: i32, msg: &str)
 
     ctx.restore()?;
     Ok(())
+}
+
+struct BarcodelistUser {
+    id: i32,
+    firstname: String,
+    lastname: String,
+    barcode: String,
+}
+
+async fn barcodelist_get_users() -> Result<Vec<BarcodelistUser>, WebShopError> {
+    let memberids = get_member_ids().await?;
+    let svg = SVG::new(200)
+        .xdim(2)
+        .foreground(Color::black())
+        .background(Color::white());
+    let mut users = Vec::new();
+
+    for id in memberids {
+        let user = get_user_info(id).await?;
+
+        if user.disabled || user.hidden {
+            continue;
+        }
+
+        let barcodedata = Code39::with_checksum(format!("USER {}", user.id))?.encode();
+        let barcode = svg.generate(&barcodedata)?;
+
+        users.push(BarcodelistUser {
+            id: user.id,
+            firstname: user.firstname,
+            lastname: user.lastname,
+            barcode: barcode,
+        });
+    }
+
+    Ok(users)
+}
+
+fn barcodelist_render_svg(ctx: &cairo::Context, rect: &cairo::Rectangle, data: &str) -> Result<(), WebShopError> {
+    let bytes = Bytes::from(data.as_bytes());
+    let stream = gio::MemoryInputStream::from_bytes(&bytes);
+    let handle = rsvg::Loader::new().read_stream(&stream, None::<&gio::File>, None::<&gio::Cancellable>)?;
+    let renderer = rsvg::CairoRenderer::new(&handle);
+    renderer.render_document(ctx, rect)?;
+    Ok(())
+}
+
+fn barcodelist_render_centered_text(ctx: &cairo::Context, x: f64, y: f64, w: i32, msg: &str) -> Result<(), WebShopError> {
+    ctx.save()?;
+    ctx.move_to(x, y);
+    ctx.set_source_rgb(0.0, 0.0, 0.0);
+
+    /* get pango layout */
+    let layout = pangocairo::functions::create_layout(&ctx);
+
+    /* setup font */
+    let mut font = pango::FontDescription::new();
+    font.set_family("LMRoman12");
+    font.set_size(9 * pango::SCALE);
+    layout.set_font_description(Some(&font));
+
+    /* left alignment */
+    layout.set_alignment(pango::Alignment::Center);
+    layout.set_wrap(pango::WrapMode::WordChar);
+
+    /* set line spacing */
+    layout.set_spacing((-2.1 * pango::SCALE as f32) as i32);
+
+    /* set page width */
+    layout.set_width(w * pango::SCALE);
+
+    /* write invoice date */
+    layout.set_text(msg);
+
+    /* render text */
+    pangocairo::functions::update_layout(ctx, &layout);
+    pangocairo::functions::show_layout(ctx, &layout);
+
+    ctx.restore()?;
+    Ok(())
+}
+
+fn barcodelist_render_user(ctx: &cairo::Context, user: &BarcodelistUser, position: u32) -> Result<(), WebShopError> {
+    let base = 50.0;
+
+    let col = position % 2;
+    let row = (position / 2) % 7;
+
+    let y = base + row as f64 * (75.0+3.0*12.0);
+    let x = if col == 0 { 50.0 } else { 347.637795 };
+    let rect = cairo::Rectangle::new(x, y, 247.638, 75.0);
+    barcodelist_render_svg(ctx, &rect, &user.barcode)?;
+
+    let text_y = y + 75.0;
+    let text_x = x + 15.0;
+    let text_w = 220;
+
+    let msg = format!("{} {} ({})", user.firstname, user.lastname, user.id);
+    barcodelist_render_centered_text(ctx, text_x, text_y, text_w, &msg)?;
+
+    Ok(())
+}
+
+fn barcodelist_render_page_header(ctx: &cairo::Context, timestamp: &str) -> Result<(), WebShopError> {
+    ctx.save()?;
+
+    ctx.move_to(24.0, 24.0);
+    let header = format!("Shopsystem User List    (generated {})", timestamp);
+    ctx.show_text(&header)?;
+
+    ctx.restore()?;
+    Ok(())
+}
+
+fn barcodelist_render_page_footer(ctx: &cairo::Context, page: u32, total_pages: u32) -> Result<(), WebShopError> {
+    ctx.save()?;
+
+    ctx.move_to(595.27559 - 75.0, 841.88976 - 12.0);
+    let footer = format!("Page {} / {}", page, total_pages);
+    ctx.show_text(&footer)?;
+
+    ctx.restore()?;
+    Ok(())
+}
+
+async fn barcodelist_render_document(users: &Vec<BarcodelistUser>) -> Result<Vec<u8>, WebShopError> {
+    /* A4 sizes (in points, 72 DPI) */
+    let width  = 595.27559; /* 210mm */
+    let height = 841.88976; /* 297mm */
+
+    let buffer: std::io::Cursor<Vec<u8>> = Default::default();
+    let document = cairo::PdfSurface::for_stream(width, height, buffer)?;
+    let ctx = cairo::Context::new(&document)?;
+
+    let now: chrono::DateTime<Local> = Local::now();
+    let timestamp = now.format("%Y-%m-%d %H:%M:%S").to_string();
+    let mut position = 0;
+    let mut page = 0;
+    let total_pages = 1 + (users.len() as u32) / 14;
+
+    for user in users {
+        if position % 14 == 0 {
+            if position > 0 {
+                ctx.show_page()?;
+            }
+            page += 1;
+            barcodelist_render_page_header(&ctx, &timestamp)?;
+            barcodelist_render_page_footer(&ctx, page, total_pages)?;
+        }
+
+        barcodelist_render_user(&ctx, &user, position)?;
+        position += 1;
+    }
+
+    document.flush();
+    let result = document.finish_output_stream();
+    match result {
+        Ok(boxedstream) => {
+            match boxedstream.downcast::<std::io::Cursor<Vec<u8>>>() {
+                Ok(buffer) => Ok(buffer.into_inner()),
+                Err(_err) => Err(WebShopError::UnboxError("Failed to unbox".to_string())),
+            }
+        },
+        Err(e) => {
+            Err(e.error.into())
+        },
+    }
+}
+
+#[get("/users/barcodelist.pdf")]
+async fn user_barcodelist(cookies: &CookieJar<'_>) -> Result<(ContentType, Vec<u8>), WebShopError> {
+    let session = match get_session(cookies).await {
+        Err(_err) => { return Err(WebShopError::PermissionDenied()); },
+        Ok(session) => session,
+    };
+
+    if !session.superuser && !session.auth_users {
+        return Err(WebShopError::PermissionDenied());
+    }
+
+    let users = barcodelist_get_users().await?;
+    let pdfdata = barcodelist_render_document(&users).await?;
+
+    Ok((ContentType::PDF, pdfdata))
 }
 
 #[get("/users/<id>/barcode.svg")]
@@ -2209,7 +2393,7 @@ fn rocket() -> _ {
             product_bestbefore, product_inventory, product_inventory_apply, aliases,
             suppliers, web_suppliers_new, supplier_json_list, supplier_json_product_list,
             supplier_json_restock_dates, cashbox, cashbox_state, cashbox_history_json,
-            cashbox_update, cashbox_details, users, user_info, user_barcode,
+            cashbox_update, cashbox_details, users, user_info, user_barcode, user_barcodelist,
             user_sound_theme_set, user_password_set, user_toggle_auth, user_invoice,
             user_invoice_full, user_stats, user_import, user_import_upload,
             user_import_apply, user_import_pgp, user_import_pgp_upload, sales])

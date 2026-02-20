@@ -40,6 +40,7 @@
             <li><a class="dropdown-item" href="/users/">List</a></li>
             <li><a class="dropdown-item" href="/users/import">Import</a></li>
             <li><a class="dropdown-item" href="/users/import-pgp">Import PGP Keys</a></li>
+            <li><a class="dropdown-item" href="/users/barcodelist.pdf">Download barcodelist.pdf</a></li>
           </ul>
         </li>
 		{% endif %}
