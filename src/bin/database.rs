@@ -452,12 +452,12 @@ impl Database {
         })
     }
 
-	fn buy(&mut self, user: i32, article: i64) -> Result<(), DatabaseError> {
-        let query = "INSERT INTO sales ('user', 'product', 'timestamp') VALUES (?, ?, ?)";
+	fn buy(&mut self, user: i32, article: i64, price: i32) -> Result<(), DatabaseError> {
+        let query = "INSERT INTO sales ('user', 'product', 'timestamp', 'price') VALUES (?, ?, ?, ?)";
         let connection = self.pool.get()?;
         let mut statement = connection.prepare(query)?;
         let timestamp = get_unix_time();
-        let _inserted_row_count = statement.execute((user, article, timestamp))?;
+        let _inserted_row_count = statement.execute((user, article, timestamp, price))?;
         Ok(())
 	}
 
@@ -892,7 +892,7 @@ impl Database {
     }
 
     fn get_invoice(&mut self, user: i32, from: i64, to: i64) -> Result<Vec<InvoiceEntry>, DatabaseError> {
-        let query = "SELECT timestamp, id AS productid, name AS productname, CASE WHEN user < 0 THEN (SELECT SUM(price * amount) / SUM(amount) FROM restock WHERE restock.product = id AND restock.timestamp <= sales.timestamp) else (SELECT CASE WHEN user=0 THEN guestprice else memberprice END FROM prices WHERE product = id AND valid_from <= timestamp ORDER BY valid_from DESC LIMIT 1) END AS price FROM sales INNER JOIN products ON sales.product = products.id WHERE user = ? AND timestamp >= ? AND timestamp <= ? ORDER BY timestamp";
+        let query = "SELECT timestamp, productid, productname, price FROM invoice WHERE user = ? AND timestamp >= ? AND timestamp <= ? ORDER BY timestamp";
 		let mut result = Vec::new();
         let connection = self.pool.get()?;
         let mut statement = connection.prepare(query)?;
@@ -1096,7 +1096,7 @@ impl Database {
     }
 
     fn get_user_invoice_sum(&mut self, user: i32, timestamp_from: i64, timestamp_to: i64) -> Result<i32, DatabaseError> {
-        let query = "SELECT SUM(CASE WHEN user < 0 THEN (SELECT SUM(price * amount) / SUM(amount) FROM restock WHERE restock.product = id AND restock.timestamp <= sales.timestamp) else (SELECT CASE WHEN user=0 THEN guestprice else memberprice END FROM prices WHERE product = id AND valid_from <= timestamp ORDER BY valid_from DESC LIMIT 1) END) FROM sales INNER JOIN products ON sales.product = products.id WHERE user = ? AND timestamp >= ? AND timestamp <= ? ORDER BY timestamp";
+        let query = "SELECT SUM(price) FROM sales WHERE user = ? AND timestamp >= ? AND timestamp <= ?";
         let connection = self.pool.get()?;
         let mut statement = connection.prepare(query)?;
         let response = statement.query_row((user, timestamp_from, timestamp_to), |r| r.get(0));

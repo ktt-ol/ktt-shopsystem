@@ -530,7 +530,7 @@ trait ShopDB {
     async fn get_product_name(&self, ean: i64) -> zbus::Result<String>;
     async fn get_product_price(&self, user: i32, article: i64) -> zbus::Result<i32>;
 
-	async fn buy(&self, user: i32, article: i64) -> zbus::Result<()>;
+	async fn buy(&self, user: i32, article: i64, price: i32) -> zbus::Result<()>;
 }
 
 async fn get_username(uid: i32) -> zbus::Result<String> {
@@ -586,10 +586,10 @@ async fn get_product_info_for_user(ean: i64, user: i32) -> zbus::Result<Product>
     })
 }
 
-async fn buy(user: i32, article: i64) -> zbus::Result<()> {
+async fn buy(user: i32, article: i64, price: i32) -> zbus::Result<()> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
-    proxy.buy(user, article).await
+    proxy.buy(user, article, price).await
 }
 
 struct ShopState {
@@ -636,7 +636,7 @@ impl ShopState {
                     let mut sum = 0;
                     for product in &self.cart {
                         sum += product.price;
-                        match buy(userid, product.ean).await {
+                        match buy(userid, product.ean, product.price).await {
                             Ok(_) => {},
                             Err(err) => {
                                 self.logdata.push(LogEntry{time: time, logtype: LogType::Info, msg: format!("Error: {}", err)});

@@ -514,7 +514,7 @@ trait ShopDB {
     async fn get_stock(&self) -> zbus::Result<Vec<StockItem>>;
     async fn get_productlist(&self) -> zbus::Result<Vec<DetailedProductInfo>>;
     async fn restock(&self, user: i32, product: i64, amount: u32, price: u32, supplier: i32, best_before_date: i64) -> zbus::Result<()>;
-    async fn buy(&self, user: i32, product: i64) -> zbus::Result<()>;
+    async fn buy(&self, user: i32, product: i64, price: i32) -> zbus::Result<()>;
     async fn new_price(&self, product: i64, timestamp: i64, memberprice: i32, guestprice: i32) ->  zbus::Result<()>;
     async fn get_prices(&self, ean: i64) -> zbus::Result<Vec<PriceInfo>>;
     async fn get_product_aliases(&self, ean: i64) -> zbus::Result<Vec<i64>>;
@@ -524,6 +524,7 @@ trait ShopDB {
 	async fn get_product_sales_info(&self, ean: i64, since: i64) -> zbus::Result<u32>;
     async fn get_product_category(&self, ean: i64) -> zbus::Result<String>;
     async fn get_product_deprecated(&self, ean: i64) -> zbus::Result<bool>;
+    async fn get_product_price(&self, user: i32, ean: i64) -> zbus::Result<i32>;
     async fn product_deprecate(&self, ean: i64, deprecated: bool) -> zbus::Result<()>;
     async fn product_metadata_get(&self, ean: i64) -> zbus::Result<ProductMetadata>;
     async fn product_metadata_set(&self, ean: i64, metadata: ProductMetadata) -> zbus::Result<()>;
@@ -695,6 +696,12 @@ async fn get_product_deprecated(ean: i64) -> zbus::Result<bool> {
     proxy.get_product_deprecated(ean).await
 }
 
+async fn get_product_price(user: i32, ean: i64) -> zbus::Result<i32> {
+    let connection = Connection::system().await?;
+    let proxy = ShopDBProxy::new(&connection).await?;
+    proxy.get_product_price(user, ean).await
+}
+
 async fn product_deprecate(ean: i64, deprecated: bool) -> zbus::Result<()> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
@@ -719,10 +726,10 @@ async fn restock(user: i32, product: i64, amount: u32, price: u32, supplier: i32
     proxy.restock(user, product, amount, price, supplier, best_before_date).await
 }
 
-async fn buy(user: i32, product: i64) -> zbus::Result<()> {
+async fn buy(user: i32, product: i64, price: i32) -> zbus::Result<()> {
     let connection = Connection::system().await?;
     let proxy = ShopDBProxy::new(&connection).await?;
-    proxy.buy(user, product).await
+    proxy.buy(user, product, price).await
 }
 
 async fn new_price(product: i64, timestamp: i64, memberprice: i32, guestprice: i32) -> zbus::Result<()> {
@@ -1159,8 +1166,9 @@ async fn product_inventory_apply_helper(cookies: &CookieJar<'_>, data: Json<Inve
                 restock(session.uid, operation.ean, operation.diff as u32, 0, data.supplier, 0).await?;
             } else if operation.diff < 0 {
                 let count = operation.diff.abs();
+                let price = get_product_price(data.user, operation.ean).await?;
                 for _ in 0..count {
-                    buy(data.user, operation.ean).await?;
+                    buy(data.user, operation.ean, price).await?;
                 }
             }
         }
