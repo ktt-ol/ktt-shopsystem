@@ -103,7 +103,7 @@ struct Cli {
     #[arg(short, long)]
     timestamp: Option<i64>,
     /// UserID
-    #[arg(short, long)]
+    #[arg(short, long, allow_negative_numbers = true)]
     user: Option<i32>,
 }
 
